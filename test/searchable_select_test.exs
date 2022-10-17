@@ -164,6 +164,27 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
+  test "pre-selection made, form mode, multiple=false", %{live: live} do
+    assert has_element?(live, "#single_form_preselected-option-1")
+    assert has_element?(live, "#single_form_preselected-option-2")
+    refute has_element?(live, "#single_form_preselected-option-3")
+    assert has_element?(live, "#single_form_preselected-option-4")
+  end
+
+  test "pre-selection made, non-form mode, multiple=false", %{live: live} do
+    assert has_element?(live, "#single_preselected-option-1")
+    assert has_element?(live, "#single_preselected-option-2")
+    assert has_element?(live, "#single_preselected-option-3")
+    refute has_element?(live, "#single_preselected-option-4")
+  end
+
+  test "pre-selection made on invalid element", %{live: live} do
+    assert has_element?(live, "#single_invalid_preselect-option-1")
+    assert has_element?(live, "#single_invalid_preselect-option-2")
+    assert has_element?(live, "#single_invalid_preselect-option-3")
+    assert has_element?(live, "#single_invalid_preselect-option-4")
+  end
+
   defp load_test_view(_) do
     {:ok, live, _html} = live_isolated(conn(:get, "/"), SearchableSelect.TestView)
     %{live: live}

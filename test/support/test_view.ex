@@ -55,6 +55,13 @@ defmodule SearchableSelect.TestView do
       parent_key="selected_options"
     />
     <.live_component
+      id="single_preselected"
+      module={SearchableSelect}
+      options={@options}
+      parent_key="selected_options"
+      preselected_id={4}
+    />
+    <.live_component
       dropdown
       id="dropdown"
       module={SearchableSelect}
@@ -78,7 +85,21 @@ defmodule SearchableSelect.TestView do
         multiple
         options={@options}
       />
+      <.live_component
+        id="single_form_preselected"
+        module={SearchableSelect}
+        options={@options}
+        parent_key="selected_options"
+        preselected_id={3}
+      />
     </.form>
+    <.live_component
+      id="single_invalid_preselect"
+      module={SearchableSelect}
+      options={@options}
+      parent_key="selected_options"
+      preselected_id={99}
+    />
     """
   end
 end
