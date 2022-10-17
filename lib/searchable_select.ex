@@ -35,6 +35,8 @@ defmodule SearchableSelect do
   options - List of maps or structs to use as options - required
   parent_key - Key to send to parent view when options are selected/unselected - required unless form is set
   placeholder - Placeholder for the search input, defaults to "Search"
+  preselected_id - Used to populate the component with an already-selected option upon first render. Only for `multiple: false`.
+    Specify the `id` of the desired option, defaults to `nil` (no pre-selection occurs).
   value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
   """
   @impl true
@@ -59,16 +61,17 @@ defmodule SearchableSelect do
       |> assign(:dropdown, assigns[:dropdown] || false)
       |> assign(:field, assigns[:field])
       |> assign(:form, assigns[:form])
-      |> assign(:id, assigns.id)
       |> assign(:id_key, assigns[:id_key] || :id)
+      |> assign(:id, assigns.id)
       |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
       |> assign(:multiple, assigns[:multiple] || false)
-      |> prep_options(assigns)
+      |> assign(:parent_key, assigns[:parent_key])
       |> assign(:placeholder, assigns[:placeholder] || "Search")
       |> assign(:search, "")
-      |> assign(:parent_key, assigns[:parent_key])
       |> assign(:selected, [])
       |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
+      |> pre_select(assigns)
+      |> prep_options(assigns)
 
     socket
     |> assign(:visible_options, filter(socket.assigns.options, ""))
@@ -192,8 +195,6 @@ defmodule SearchableSelect do
   end
 
   def prep_options(%{assigns: assigns} = socket, %{options: options}) do
-    selected = Map.get(assigns, :selected, [])
-
     gb_options =
       Enum.reduce(options, :gb_trees.empty(), fn option, acc ->
         normalised_label = assigns.label_callback.(option) |> normalise_string()
@@ -201,7 +202,7 @@ defmodule SearchableSelect do
       end)
 
     gb_options =
-      Enum.reduce(selected, gb_options, fn {key, _}, acc ->
+      Enum.reduce(assigns.selected, gb_options, fn {key, _}, acc ->
         :gb_trees.delete_any(key, acc)
       end)
 
@@ -268,6 +269,20 @@ defmodule SearchableSelect do
   end
 
   defp get_hook_id(id), do: id <> "-form-hook"
+
+  defp pre_select(%{assigns: assigns} = socket, %{options: options} = params) do
+    selected =
+      with true <- params[:preselected_id] && !assigns.multiple,
+           selected_option when not is_nil(selected_option) <-
+             Enum.find(options, &(Map.get(&1, :id) == params[:preselected_id])) do
+        selected_key = assigns.label_callback.(selected_option) |> normalise_string()
+        [{selected_key, selected_option}]
+      else
+        _ -> []
+      end
+
+    assign(socket, :selected, selected)
+  end
 
   defp normalise_string(string) do
     string
