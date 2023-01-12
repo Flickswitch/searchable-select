@@ -8,7 +8,9 @@ defmodule SearchableSelect.TestView do
       %{id: 1, name: "Ayy"},
       %{id: 2, name: "Bar"},
       %{id: 3, name: "Foo"},
-      %{id: 4, name: "Lmao"}
+      %{id: 4, name: "Lmao"},
+      %{id: 5, name: "Biz"},
+      %{id: 6, name: "Baz"}
     ]
 
     socket =
@@ -62,6 +64,14 @@ defmodule SearchableSelect.TestView do
       preselected_id={4}
     />
     <.live_component
+      id="multi_preselected"
+      module={SearchableSelect}
+      multiple
+      options={@options}
+      parent_key="selected_options"
+      preselected_ids={[1, 2]}
+    />
+    <.live_component
       dropdown
       id="dropdown"
       module={SearchableSelect}
@@ -92,6 +102,14 @@ defmodule SearchableSelect.TestView do
         parent_key="selected_options"
         preselected_id={3}
       />
+      <.live_component
+        id="multi_form_preselected"
+        module={SearchableSelect}
+        multiple
+        options={@options}
+        parent_key="selected_options"
+        preselected_ids={[1, 2]}
+      />
     </.form>
     <.live_component
       id="single_invalid_preselect"
@@ -99,6 +117,13 @@ defmodule SearchableSelect.TestView do
       options={@options}
       parent_key="selected_options"
       preselected_id={99}
+    />
+    <.live_component
+      id="multi_invalid_preselect"
+      module={SearchableSelect}
+      options={@options}
+      parent_key="selected_options"
+      preselected_ids={[98, 99]}
     />
     """
   end

@@ -171,11 +171,18 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#single_form_preselected-option-4")
   end
 
-  test "pre-selection made, non-form mode, multiple=false", %{live: live} do
-    assert has_element?(live, "#single_preselected-option-1")
-    assert has_element?(live, "#single_preselected-option-2")
-    assert has_element?(live, "#single_preselected-option-3")
-    refute has_element?(live, "#single_preselected-option-4")
+  test "pre-selection made, form mode, multiple=true", %{live: live} do
+    refute has_element?(live, "#multi_form_preselected-option-1")
+    refute has_element?(live, "#multi_form_preselected-option-2")
+    assert has_element?(live, "#multi_form_preselected-option-3")
+    assert has_element?(live, "#multi_form_preselected-option-4")
+  end
+
+  test "pre-selection made, non-form mode, multiple=true", %{live: live} do
+    refute has_element?(live, "#multi_preselected-option-1")
+    refute has_element?(live, "#multi_preselected-option-2")
+    assert has_element?(live, "#multi_preselected-option-3")
+    assert has_element?(live, "#multi_preselected-option-4")
   end
 
   test "pre-selection made on invalid element", %{live: live} do
@@ -183,6 +190,13 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#single_invalid_preselect-option-2")
     assert has_element?(live, "#single_invalid_preselect-option-3")
     assert has_element?(live, "#single_invalid_preselect-option-4")
+  end
+
+  test "pre-selection made on invalid elements", %{live: live} do
+    assert has_element?(live, "#multi_invalid_preselect-option-1")
+    assert has_element?(live, "#multi_invalid_preselect-option-2")
+    assert has_element?(live, "#multi_invalid_preselect-option-3")
+    assert has_element?(live, "#multi_invalid_preselect-option-4")
   end
 
   defp load_test_view(_) do
