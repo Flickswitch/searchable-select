@@ -71,7 +71,7 @@ defmodule SearchableSelect do
       |> assign(:parent_key, assigns[:parent_key])
       |> assign(:placeholder, assigns[:placeholder] || "Search")
       |> assign(:search, "")
-      |> assign(:selected, [])
+      |> assign(:selected, assigns[:selected] || [])
       |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
       |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
       |> prep_options(assigns)
@@ -272,6 +272,12 @@ defmodule SearchableSelect do
   end
 
   defp get_hook_id(id), do: id <> "-form-hook"
+
+  defp pre_select(socket, %{preselected_ids: [], multiple: true}) do
+    assign(socket, :selected, [])
+  end
+
+  defp pre_select(socket, %{preselected_id: nil, preselected_ids: []}), do: socket
 
   defp pre_select(socket, %{options: options, preselected_id: preselected_id, multiple: false}) do
     selected_option = Enum.find(options, &(Map.get(&1, :id) == preselected_id))
