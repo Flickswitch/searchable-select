@@ -57,27 +57,24 @@ defmodule SearchableSelect do
 
   # this is when the component is mounted
   def update(assigns, socket) do
-    socket =
-      socket
-      |> assign(:class, assigns[:class] || "")
-      |> assign(:disabled, assigns[:disabled] || false)
-      |> assign(:dropdown, assigns[:dropdown] || false)
-      |> assign(:field, assigns[:field])
-      |> assign(:form, assigns[:form])
-      |> assign(:id_key, assigns[:id_key] || :id)
-      |> assign(:id, assigns.id)
-      |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
-      |> assign(:multiple, assigns[:multiple] || false)
-      |> assign(:parent_key, assigns[:parent_key])
-      |> assign(:placeholder, assigns[:placeholder] || "Search")
-      |> assign(:search, "")
-      |> assign(:selected, assigns[:selected] || [])
-      |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
-      |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
-      |> prep_options(assigns)
-
     socket
-    |> assign(:visible_options, filter(socket.assigns.options, ""))
+    |> assign(:class, assigns[:class] || "")
+    |> assign(:disabled, assigns[:disabled] || false)
+    |> assign(:dropdown, assigns[:dropdown] || false)
+    |> assign(:field, assigns[:field])
+    |> assign(:form, assigns[:form])
+    |> assign(:id_key, assigns[:id_key] || :id)
+    |> assign(:id, assigns.id)
+    |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
+    |> assign(:multiple, assigns[:multiple] || false)
+    |> assign(:parent_key, assigns[:parent_key])
+    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(:search, "")
+    |> assign(:selected, assigns[:selected] || [])
+    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
+    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
+    |> prep_options(assigns)
+    |> then(&assign(&1, :visible_options, filter(&1.assigns.options, "")))
     |> then(&{:ok, &1})
   end
 
