@@ -37,6 +37,8 @@ defmodule SearchableSelect do
   placeholder - Placeholder for the search input, defaults to "Search"
   preselected_id - Used to populate the component with an already-selected option upon first render. Only for `multiple: false`.
     Specify the `id` of the desired option, defaults to `nil` (no pre-selection occurs).
+  preselected_ids - Used to populate the component with already-selected options upon first render. Only for `multiple: true`.
+    Specify a list of `id`s of the desired options, defaults to [] (no pre-selection occurs).
   value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
   """
   @impl true
@@ -45,6 +47,7 @@ defmodule SearchableSelect do
     socket =
       socket
       |> assign(:search, "")
+      |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
       |> prep_options(assigns)
 
     socket
@@ -54,27 +57,24 @@ defmodule SearchableSelect do
 
   # this is when the component is mounted
   def update(assigns, socket) do
-    socket =
-      socket
-      |> assign(:class, assigns[:class] || "")
-      |> assign(:disabled, assigns[:disabled] || false)
-      |> assign(:dropdown, assigns[:dropdown] || false)
-      |> assign(:field, assigns[:field])
-      |> assign(:form, assigns[:form])
-      |> assign(:id_key, assigns[:id_key] || :id)
-      |> assign(:id, assigns.id)
-      |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
-      |> assign(:multiple, assigns[:multiple] || false)
-      |> assign(:parent_key, assigns[:parent_key])
-      |> assign(:placeholder, assigns[:placeholder] || "Search")
-      |> assign(:search, "")
-      |> assign(:selected, [])
-      |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
-      |> pre_select(assigns)
-      |> prep_options(assigns)
-
     socket
-    |> assign(:visible_options, filter(socket.assigns.options, ""))
+    |> assign(:class, assigns[:class] || "")
+    |> assign(:disabled, assigns[:disabled] || false)
+    |> assign(:dropdown, assigns[:dropdown] || false)
+    |> assign(:field, assigns[:field])
+    |> assign(:form, assigns[:form])
+    |> assign(:id_key, assigns[:id_key] || :id)
+    |> assign(:id, assigns.id)
+    |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
+    |> assign(:multiple, assigns[:multiple] || false)
+    |> assign(:parent_key, assigns[:parent_key])
+    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(:search, "")
+    |> assign(:selected, assigns[:selected] || [])
+    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
+    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
+    |> prep_options(assigns)
+    |> then(&assign(&1, :visible_options, filter(&1.assigns.options, "")))
     |> then(&{:ok, &1})
   end
 
@@ -270,19 +270,45 @@ defmodule SearchableSelect do
 
   defp get_hook_id(id), do: id <> "-form-hook"
 
-  defp pre_select(%{assigns: assigns} = socket, %{options: options} = params) do
-    selected =
-      with true <- params[:preselected_id] && !assigns.multiple,
-           selected_option when not is_nil(selected_option) <-
-             Enum.find(options, &(Map.get(&1, :id) == params[:preselected_id])) do
-        selected_key = assigns.label_callback.(selected_option) |> normalise_string()
-        [{selected_key, selected_option}]
+  defp pre_select(socket, %{preselected_ids: [], multiple: true}) do
+    assign(socket, :selected, [])
+  end
+
+  defp pre_select(socket, %{preselected_id: nil, preselected_ids: []}), do: socket
+
+  defp pre_select(socket, %{options: options, preselected_id: preselected_id, multiple: false}) do
+    preselected_id =
+      if is_binary(preselected_id) do
+        String.to_integer(preselected_id)
       else
-        _ -> []
+        preselected_id
       end
+
+    selected_option = Enum.find(options, &(Map.get(&1, :id) == preselected_id))
+
+    if selected_option do
+      selected_option_key = socket.assigns.label_callback.(selected_option) |> normalise_string()
+      assign(socket, :selected, [{selected_option_key, selected_option}])
+    else
+      assign(socket, :selected, [])
+    end
+  end
+
+  defp pre_select(socket, %{options: options, preselected_ids: preselected_ids, multiple: true}) do
+    selected =
+      Enum.reduce(options, [], fn option, acc ->
+        if option.id in preselected_ids do
+          option_key = socket.assigns.label_callback.(option) |> normalise_string()
+          acc ++ [{option_key, option}]
+        else
+          acc
+        end
+      end)
 
     assign(socket, :selected, selected)
   end
+
+  defp pre_select(socket, _assigns), do: socket
 
   defp normalise_string(string) do
     string
