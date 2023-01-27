@@ -47,6 +47,8 @@ defmodule SearchableSelect do
     socket =
       socket
       |> assign(:search, "")
+      |> assign(:disabled, assigns[:disabled] || false)
+      |> assign(:placeholder, assigns[:placeholder] || "Search")
       |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
       |> prep_options(assigns)
 
@@ -57,6 +59,7 @@ defmodule SearchableSelect do
 
   # this is when the component is mounted
   def update(assigns, socket) do
+    IO.inspect(assigns, label: "Initial searchable assigns")
     socket
     |> assign(:class, assigns[:class] || "")
     |> assign(:disabled, assigns[:disabled] || false)
