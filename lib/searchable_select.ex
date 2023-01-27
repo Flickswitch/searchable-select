@@ -59,7 +59,6 @@ defmodule SearchableSelect do
 
   # this is when the component is mounted
   def update(assigns, socket) do
-    IO.inspect(assigns, label: "Initial searchable assigns")
     socket
     |> assign(:class, assigns[:class] || "")
     |> assign(:disabled, assigns[:disabled] || false)
