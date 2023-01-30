@@ -47,8 +47,8 @@ defmodule SearchableSelect do
     socket =
       socket
       |> assign(:search, "")
-      |> assign(:disabled, assigns[:disabled] || false)
-      |> assign(:placeholder, assigns[:placeholder] || "Search")
+      |> assign(:disabled, assigns[:disabled])
+      |> assign(:placeholder, assigns[:placeholder])
       |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
       |> prep_options(assigns)
 
