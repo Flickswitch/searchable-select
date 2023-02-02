@@ -197,10 +197,9 @@ defmodule SearchableSelect do
   end
 
   def prep_options(%{assigns: assigns} = socket, %{options: options}) do
-    gb_options =
-      Enum.reduce(options, :gb_trees.empty(), fn option, acc ->
-        normalised_label = assigns.label_callback.(option) |> normalise_string()
-        :gb_trees.insert(normalised_label, option, acc)
+    [_ , gb_options] =
+      Enum.reduce(options, [0, :gb_trees.empty()], fn option, [count, tree] ->
+        [count + 1, :gb_trees.insert(count, option, tree)]
       end)
 
     gb_options =
