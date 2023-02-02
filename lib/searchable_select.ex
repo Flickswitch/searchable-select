@@ -199,7 +199,8 @@ defmodule SearchableSelect do
   def prep_options(%{assigns: assigns} = socket, %{options: options}) do
     [_ , gb_options] =
       Enum.reduce(options, [0, :gb_trees.empty()], fn option, [count, tree] ->
-        [count + 1, :gb_trees.insert(count, option, tree)]
+        searchable_string = assigns.label_callback.(option) |> normalise_string()
+        [count + 1, :gb_trees.insert(count, {option, searchable_string}, tree)]
       end)
 
     gb_options =
@@ -223,9 +224,9 @@ defmodule SearchableSelect do
     end
   end
 
-  def filter({key, val, next}, acc, search) do
+  def filter({key, {_, searchable_string} = val, next}, acc, search) do
     acc =
-      if String.contains?(key, search) do
+      if String.contains?(searchable_string, search) do
         [{key, val} | acc]
       else
         acc
