@@ -213,11 +213,6 @@ defmodule SearchableSelect do
     sort_options(socket, assigns, mapper, :asc)
   end
 
-  def sort_options(socket, assigns, nil, sorter) do
-    # If no mapper is provided we pass &(&1) to simply use the value of the item itself to sort
-    sort_options(socket, assigns, & &1, sorter)
-  end
-
   def sort_options(socket, %{visible_options: visible_options}, mapper, sorter) do
     visible_options = Enum.sort_by(visible_options, fn {_, x} -> mapper.(x) end, sorter)
 
