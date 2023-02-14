@@ -40,8 +40,8 @@ defmodule SearchableSelect do
   preselected_ids - Used to populate the component with already-selected options upon first render. Only for `multiple: true`.
     Specify a list of `id`s of the desired options, defaults to [] (no pre-selection occurs).
   value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
-  sort_mapper - Function used to sort the options, refer to Enum.sort_by/3
-  sorter - Either :asc or :desc and optional module to use for compare refer to Enum.sort_by/3
+  sort_callback - Either :asc or :desc and optional module to use for compare refer to Enum.sort_by/3
+  sort_mapping_callback - Function for mapping of value to sort by, refer to Enum.sort_by/3
   """
   @impl true
   # this is when assigns change after the component is mounted
@@ -56,7 +56,7 @@ defmodule SearchableSelect do
 
     socket
     |> assign(:visible_options, filter(socket.assigns.options, ""))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapper], assigns[:sorter]))
+    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
     |> then(&{:ok, &1})
   end
 
@@ -77,12 +77,12 @@ defmodule SearchableSelect do
     |> assign(:search, "")
     |> assign(:selected, assigns[:selected] || [])
     |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
-    |> assign(:sort_mapper, assigns[:sort_mapper])
-    |> assign(:sorter, assigns[:sorter])
+    |> assign(:sort_callback, assigns[:sort_callback])
+    |> assign(:sort_mapping_callback, assigns[:sort_mapping_callback])
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
     |> then(&assign(&1, :visible_options, filter(&1.assigns.options, "")))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapper], assigns[:sorter]))
+    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
     |> then(&{:ok, &1})
   end
 
@@ -103,7 +103,7 @@ defmodule SearchableSelect do
     |> assign(:selected, Enum.reverse(selected))
     |> update_parent_view()
     |> assign(:visible_options, filter(options, search))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapper], assigns[:sorter]))
+    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
     |> then(&{:noreply, &1})
   end
 
@@ -113,7 +113,7 @@ defmodule SearchableSelect do
     socket
     |> assign(:search, search)
     |> assign(:visible_options, filter(options, search))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapper], assigns[:sorter]))
+    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
     |> then(&{:noreply, &1})
   end
 
@@ -146,7 +146,7 @@ defmodule SearchableSelect do
     |> assign(:selected, selected)
     |> assign(:search, "")
     |> assign(:visible_options, filter(options, ""))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapper], assigns[:sorter]))
+    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
     |> update_parent_view()
     |> then(&{:noreply, &1})
   end
@@ -213,8 +213,8 @@ defmodule SearchableSelect do
     sort_options(socket, assigns, mapper, :asc)
   end
 
-  def sort_options(socket, %{visible_options: visible_options}, mapper, sorter) do
-    visible_options = Enum.sort_by(visible_options, fn {_, x} -> mapper.(x) end, sorter)
+  def sort_options(socket, %{visible_options: visible_options}, mapper, sort_callback) do
+    visible_options = Enum.sort_by(visible_options, fn {_, x} -> mapper.(x) end, sort_callback)
 
     assign(socket, :visible_options, visible_options)
   end
