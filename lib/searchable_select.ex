@@ -203,23 +203,16 @@ defmodule SearchableSelect do
   def sort_and_filter(%{assigns: assigns} = socket, options, search) do
     socket
     |> assign(:visible_options, filter(options, search))
-    |> sort_options(assigns, assigns[:sort_mapping_callback], assigns[:sort_callback])
+    |> sort_options(assigns[:sort_mapping_callback], assigns[:sort_callback])
   end
 
-  def sort_options(socket, assigns, sort_mapping_callback, sort_callbak \\ :asc)
+  def sort_options(socket, sort_mapping_callback, sort_callbak \\ :asc)
 
-  def sort_options(socket, _, nil, nil) do
-    socket
-  end
+  def sort_options(socket, nil, nil) do socket end
 
-  def sort_options(
-        socket,
-        %{visible_options: visible_options},
-        sort_mapping_callback,
-        sort_callback
-      ) do
+  def sort_options(socket, sort_mapping_callback, sort_callback) do
     visible_options =
-      Enum.sort_by(visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
+      Enum.sort_by(socket.assigns.visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
 
     assign(socket, :visible_options, visible_options)
   end
