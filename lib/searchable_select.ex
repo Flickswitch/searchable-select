@@ -55,8 +55,7 @@ defmodule SearchableSelect do
       |> prep_options(assigns)
 
     socket
-    |> assign(:visible_options, filter(socket.assigns.options, ""))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
+    |> then(&sort_and_filter(&1, &1.assigns.options, ""))
     |> then(&{:ok, &1})
   end
 
@@ -81,8 +80,7 @@ defmodule SearchableSelect do
     |> assign(:sort_mapping_callback, assigns[:sort_mapping_callback])
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
-    |> then(&assign(&1, :visible_options, filter(&1.assigns.options, "")))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
+    |> then(&sort_and_filter(&1, &1.assigns.options, ""))
     |> then(&{:ok, &1})
   end
 
@@ -102,18 +100,16 @@ defmodule SearchableSelect do
     |> assign(:options, options)
     |> assign(:selected, Enum.reverse(selected))
     |> update_parent_view()
-    |> assign(:visible_options, filter(options, search))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
+    |> sort_and_filter(options, search)
     |> then(&{:noreply, &1})
   end
 
-  def handle_event("search", %{"value" => search}, %{assigns: assigns} = socket) do
+  def handle_event("search", %{"value" => search}, socket) do
     %{assigns: %{options: options}} = socket
 
     socket
     |> assign(:search, search)
-    |> assign(:visible_options, filter(options, search))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
+    |> sort_and_filter(options, search)
     |> then(&{:noreply, &1})
   end
 
@@ -145,8 +141,7 @@ defmodule SearchableSelect do
     |> assign(:options, options)
     |> assign(:selected, selected)
     |> assign(:search, "")
-    |> assign(:visible_options, filter(options, ""))
-    |> then(&sort_options(&1, &1.assigns, assigns[:sort_mapping_callback], assigns[:sort_callback]))
+    |> sort_and_filter(options, "")
     |> update_parent_view()
     |> then(&{:noreply, &1})
   end
@@ -205,16 +200,26 @@ defmodule SearchableSelect do
     end
   end
 
+  def sort_and_filter(%{assigns: assigns} = socket, options, search) do
+    socket
+    |> assign(:visible_options, filter(options, search))
+    |> sort_options(assigns, assigns[:sort_mapping_callback], assigns[:sort_callback])
+  end
+
+  def sort_options(socket, assigns, sort_mapping_callback, sort_callbak \\ :asc)
+
   def sort_options(socket, _, nil, nil) do
     socket
   end
 
-  def sort_options(socket, assigns, mapper, nil) do
-    sort_options(socket, assigns, mapper, :asc)
-  end
-
-  def sort_options(socket, %{visible_options: visible_options}, mapper, sort_callback) do
-    visible_options = Enum.sort_by(visible_options, fn {_, x} -> mapper.(x) end, sort_callback)
+  def sort_options(
+        socket,
+        %{visible_options: visible_options},
+        sort_mapping_callback,
+        sort_callback
+      ) do
+    visible_options =
+      Enum.sort_by(visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
 
     assign(socket, :visible_options, visible_options)
   end
