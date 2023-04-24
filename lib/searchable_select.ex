@@ -42,6 +42,8 @@ defmodule SearchableSelect do
   value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
   sort_callback - Either :asc or :desc and optional module to use for compare refer to Enum.sort_by/3
   sort_mapping_callback - Function for mapping of value to sort by, refer to Enum.sort_by/3
+  no_matching_options_text - TODO
+  send_search_events - TODO
   """
   @impl true
   # this is when assigns change after the component is mounted
@@ -71,13 +73,18 @@ defmodule SearchableSelect do
     |> assign(:id, assigns.id)
     |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
     |> assign(:multiple, assigns[:multiple] || false)
+    |> assign(
+      :no_matching_options_text,
+      assigns[:no_matching_options_text] || "Sorry, no matching options."
+    )
     |> assign(:parent_key, assigns[:parent_key])
     |> assign(:placeholder, assigns[:placeholder] || "Search")
     |> assign(:search, "")
     |> assign(:selected, assigns[:selected] || [])
-    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
+    |> assign(:send_search_events, assigns[:send_search_events] || false)
     |> assign(:sort_callback, assigns[:sort_callback])
     |> assign(:sort_mapping_callback, assigns[:sort_mapping_callback])
+    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
     |> then(&sort_and_filter(&1, &1.assigns.options, ""))
@@ -104,8 +111,15 @@ defmodule SearchableSelect do
     |> then(&{:noreply, &1})
   end
 
-  def handle_event("search", %{"value" => search}, socket) do
-    %{assigns: %{options: options}} = socket
+  def handle_event("search", %{"value" => search} = params, socket) do
+    %{
+      assigns: %{options: options, parent_key: parent_key, send_search_events: send_search_events}
+    } = socket
+
+    if send_search_events do
+      search_event_str = if params["key"] == "Enter", do: "#{search}\n", else: search
+      send(self(), {:search, parent_key, search_event_str})
+    end
 
     socket
     |> assign(:search, search)
@@ -208,11 +222,15 @@ defmodule SearchableSelect do
 
   def sort_options(socket, sort_mapping_callback, sort_callbak \\ :asc)
 
-  def sort_options(socket, nil, nil) do socket end
+  def sort_options(socket, nil, nil), do: socket
 
   def sort_options(socket, sort_mapping_callback, sort_callback) do
     visible_options =
-      Enum.sort_by(socket.assigns.visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
+      Enum.sort_by(
+        socket.assigns.visible_options,
+        fn {_, x} -> sort_mapping_callback.(x) end,
+        sort_callback
+      )
 
     assign(socket, :visible_options, visible_options)
   end

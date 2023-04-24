@@ -75,11 +75,11 @@
           <div class="w-full border-gray-200 border-b">
             <div class="flex w-full items-center p-2 pl-2 border-transparent border-l-2 relative">
               <div class="w-full items-center flex justify-between">
-                <%= if String.trim(@search) == "" do %>
-                  No more options.
-                <% else %>
-                  Sorry, no matching options.
-                <% end %>
+                <%= if String.trim(@search) == "" do
+                  "No more options."
+                else
+                  @no_matching_options_text
+                end %>
               </div>
             </div>
           </div>
