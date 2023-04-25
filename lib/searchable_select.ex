@@ -42,7 +42,7 @@ defmodule SearchableSelect do
   preselected_ids - Used to populate the component with already-selected options upon first render. Only for `multiple: true`.
     Specify a list of `id`s of the desired options, defaults to [] (no pre-selection occurs).
   value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
-  send_search_events - If set, this Component sends a `{:search, "tag", search_string}`
+  send_search_events - If set, this Component sends a `{:search, key, search_string}`
     message whenever its search string changes. Defaults to false.
   sort_callback - Either :asc or :desc and optional module to use for compare refer to Enum.sort_by/3
   sort_mapping_callback - Function for mapping of value to sort by, refer to Enum.sort_by/3
