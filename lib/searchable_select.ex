@@ -33,6 +33,8 @@ defmodule SearchableSelect do
   label_callback - Function used to populate label when displaying items. Defaults to `fn item -> item.name end`
   multiple - True=multiple options may be selected, False=only one option may be select - optional, defaults to `false`
   options - List of maps or structs to use as options - required
+  no_matching_options_text - Text to display if a search is entered but there are no matching options.
+    Defaults to: "Sorry, no matching options."
   parent_key - Key to send to parent view when options are selected/unselected - required unless form is set
   placeholder - Placeholder for the search input, defaults to "Search"
   preselected_id - Used to populate the component with an already-selected option upon first render. Only for `multiple: false`.
@@ -40,6 +42,8 @@ defmodule SearchableSelect do
   preselected_ids - Used to populate the component with already-selected options upon first render. Only for `multiple: true`.
     Specify a list of `id`s of the desired options, defaults to [] (no pre-selection occurs).
   value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
+  send_search_events - If set, this Component sends a `{:search, key, search_string}`
+    message whenever its search string changes. Defaults to false.
   sort_callback - Either :asc or :desc and optional module to use for compare refer to Enum.sort_by/3
   sort_mapping_callback - Function for mapping of value to sort by, refer to Enum.sort_by/3
   """
@@ -48,9 +52,9 @@ defmodule SearchableSelect do
   def update(assigns, %{assigns: %{id: _id}} = socket) do
     socket =
       socket
-      |> assign(:search, "")
       |> assign(:disabled, assigns[:disabled])
       |> assign(:placeholder, assigns[:placeholder] || "Search")
+      |> assign(:search, "")
       |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
       |> prep_options(assigns)
 
@@ -71,13 +75,15 @@ defmodule SearchableSelect do
     |> assign(:id, assigns.id)
     |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
     |> assign(:multiple, assigns[:multiple] || false)
+    |> assign(:no_matching_options_text, assigns[:no_matching_options_text])
     |> assign(:parent_key, assigns[:parent_key])
     |> assign(:placeholder, assigns[:placeholder] || "Search")
     |> assign(:search, "")
     |> assign(:selected, assigns[:selected] || [])
-    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
+    |> assign(:send_search_events, assigns[:send_search_events] || false)
     |> assign(:sort_callback, assigns[:sort_callback])
     |> assign(:sort_mapping_callback, assigns[:sort_mapping_callback])
+    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
     |> then(&sort_and_filter(&1, &1.assigns.options, ""))
@@ -104,8 +110,15 @@ defmodule SearchableSelect do
     |> then(&{:noreply, &1})
   end
 
-  def handle_event("search", %{"value" => search}, socket) do
-    %{assigns: %{options: options}} = socket
+  def handle_event("search", %{"value" => search} = params, socket) do
+    %{
+      assigns: %{options: options, parent_key: parent_key, send_search_events: send_search_events}
+    } = socket
+
+    if send_search_events do
+      search_event_str = if params["key"] == "Enter", do: "#{search}\n", else: search
+      send(self(), {:search, parent_key, search_event_str})
+    end
 
     socket
     |> assign(:search, search)
@@ -208,11 +221,15 @@ defmodule SearchableSelect do
 
   def sort_options(socket, sort_mapping_callback, sort_callbak \\ :asc)
 
-  def sort_options(socket, nil, nil) do socket end
+  def sort_options(socket, nil, nil), do: socket
 
   def sort_options(socket, sort_mapping_callback, sort_callback) do
     visible_options =
-      Enum.sort_by(socket.assigns.visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
+      Enum.sort_by(
+        socket.assigns.visible_options,
+        fn {_, x} -> sort_mapping_callback.(x) end,
+        sort_callback
+      )
 
     assign(socket, :visible_options, visible_options)
   end

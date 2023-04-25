@@ -15,6 +15,7 @@ defmodule SearchableSelect.TestView do
 
     socket =
       socket
+      |> assign(:last_search_message_params, nil)
       |> assign(:options, example_options)
       |> assign(:selected_options, [])
 
@@ -34,6 +35,12 @@ defmodule SearchableSelect.TestView do
     |> then(&{:noreply, &1})
   end
 
+  def handle_info({:search, key, search_string}, socket) do
+    socket
+    |> assign(:last_search_message_params, {key, search_string})
+    |> then(&{:noreply, &1})
+  end
+
   defp get_selected_id_list([]), do: "[]"
   defp get_selected_id_list([%{id: id}]), do: "[#{id}]"
   defp get_selected_id_list(nil), do: "nil"
@@ -49,6 +56,15 @@ defmodule SearchableSelect.TestView do
       multiple
       options={@options}
       parent_key="selected_options"
+    />
+    <.live_component
+      id="multi_custom_no_matching_options_text"
+      module={SearchableSelect}
+      multiple
+      options={@options}
+      parent_key="selected_options"
+      no_matching_options_text="These aren't the droids you're looking for..."
+      send_search_events
     />
     <.live_component
       id="single"
@@ -125,6 +141,10 @@ defmodule SearchableSelect.TestView do
       parent_key="selected_options"
       preselected_ids={[98, 99]}
     />
+
+    last_search_message_params: <p id="last_search_message_params_p">
+      <%= inspect(@last_search_message_params) %>
+    </p>
     """
   end
 end

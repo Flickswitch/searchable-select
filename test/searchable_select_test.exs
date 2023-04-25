@@ -34,6 +34,24 @@ defmodule SearchableSelect.SearchableSelectTest do
     Enum.each(1..4, fn i -> refute has_element?(live, "#multi-option-#{i}") end)
   end
 
+  test "no results message shows if no items available - custom no_matching_options_text", %{
+    live: live
+  } do
+    html =
+      live
+      |> element("#multi_custom_no_matching_options_text-search")
+      |> render_keyup(%{"value" => "asdf"})
+
+    assert html =~ "These aren&#39;t the droids you&#39;re looking for..."
+
+    Enum.each(1..4, fn i ->
+      refute has_element?(live, "#multi_custom_no_matching_options_text-option-#{i}")
+    end)
+
+    assert "<p id=\"last_search_message_params_p\">\n  {&quot;selected_options&quot;, &quot;asdf&quot;}\n</p>" =
+             live |> element("#last_search_message_params_p") |> render()
+  end
+
   test "can select multiple items if multiple=true", %{live: live} do
     live |> element("#multi-option-1") |> render_click()
     live |> element("#multi-option-2") |> render_click()
