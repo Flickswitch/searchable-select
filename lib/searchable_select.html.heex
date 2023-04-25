@@ -78,7 +78,7 @@
                 <%= if String.trim(@search) == "" do
                   "No more options."
                 else
-                  @no_matching_options_text
+                  @no_matching_options_text || "Sorry, no matching options."
                 end %>
               </div>
             </div>
