@@ -32,7 +32,8 @@ defmodule SearchableSelect do
     as a testing convenience.
   label_callback - Function used to populate label when displaying items. Defaults to `fn item -> item.name end`
   multiple - True=multiple options may be selected, False=only one option may be select - optional, defaults to `false`
-  options - List of maps or structs to use as options - required
+  options - List of maps or structs to use as options - required. Each option must have a unique `:id`,
+    which should not contain any spaces.
   no_matching_options_text - Text to display if a search is entered but there are no matching options.
     Defaults to: "Sorry, no matching options."
   parent_key - Key to send to parent view when options are selected/unselected - required unless form is set
