@@ -32,7 +32,8 @@ defmodule SearchableSelect do
     as a testing convenience.
   label_callback - Function used to populate label when displaying items. Defaults to `fn item -> item.name end`
   multiple - True=multiple options may be selected, False=only one option may be select - optional, defaults to `false`
-  options - List of maps or structs to use as options - required
+  options - List of maps or structs to use as options - required. Each option must have a unique `:id`,
+    which should not contain any spaces.
   no_matching_options_text - Text to display if a search is entered but there are no matching options.
     Defaults to: "Sorry, no matching options."
   parent_key - Key to send to parent view when options are selected/unselected - required unless form is set
@@ -237,8 +238,7 @@ defmodule SearchableSelect do
   def prep_options(%{assigns: assigns} = socket, %{options: options}) do
     gb_options =
       Enum.reduce(options, :gb_trees.empty(), fn option, acc ->
-        normalised_label = assigns.label_callback.(option) |> normalise_string()
-        :gb_trees.insert(normalised_label, option, acc)
+        :gb_trees.insert(unique_normalised_key(option, assigns.label_callback), option, acc)
       end)
 
     gb_options =
@@ -264,7 +264,7 @@ defmodule SearchableSelect do
 
   def filter({key, val, next}, acc, search) do
     acc =
-      if String.contains?(key, search) do
+      if key |> String.split(" ") |> List.first() |> String.contains?(search) do
         [{key, val} | acc]
       else
         acc
@@ -327,7 +327,7 @@ defmodule SearchableSelect do
     selected_option = Enum.find(options, &(Map.get(&1, :id) == preselected_id))
 
     if selected_option do
-      selected_option_key = socket.assigns.label_callback.(selected_option) |> normalise_string()
+      selected_option_key = unique_normalised_key(selected_option, socket.assigns.label_callback)
       assign(socket, :selected, [{selected_option_key, selected_option}])
     else
       assign(socket, :selected, [])
@@ -338,7 +338,7 @@ defmodule SearchableSelect do
     selected =
       Enum.reduce(options, [], fn option, acc ->
         if option.id in preselected_ids do
-          option_key = socket.assigns.label_callback.(option) |> normalise_string()
+          option_key = unique_normalised_key(option, socket.assigns.label_callback)
           acc ++ [{option_key, option}]
         else
           acc
@@ -354,5 +354,10 @@ defmodule SearchableSelect do
     string
     |> String.replace(" ", "")
     |> String.downcase()
+  end
+
+  defp unique_normalised_key(option, label_callback) do
+    normalised_label = label_callback.(option) |> normalise_string()
+    "#{normalised_label} #{option.id}"
   end
 end

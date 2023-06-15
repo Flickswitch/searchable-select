@@ -10,7 +10,8 @@ defmodule SearchableSelect.TestView do
       %{id: 3, name: "Foo"},
       %{id: 4, name: "Lmao"},
       %{id: 5, name: "Biz"},
-      %{id: 6, name: "Baz"}
+      %{id: 6, name: "Baz"},
+      %{id: 7, name: "Foo"}
     ]
 
     socket =
