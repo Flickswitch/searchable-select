@@ -71,19 +71,7 @@
     >
       <%# dropdown options %>
       <div class="flex flex-col w-full overflow-y-auto max-h-64">
-        <%= if length(@visible_options) == 0 do %>
-          <div class="w-full border-gray-200 border-b">
-            <div class="flex w-full items-center p-2 pl-2 border-transparent border-l-2 relative">
-              <div class="w-full items-center flex justify-between">
-                <%= if String.trim(@search) == "" do
-                  "No more options."
-                else
-                  @no_matching_options_text || "Sorry, no matching options."
-                end %>
-              </div>
-            </div>
-          </div>
-        <% else %>
+        <%= if Enum.any?(@visible_options) do %>
           <%= for {option_key, option_val} <- @visible_options do %>
             <div class="overflow-none shrink-0" id={get_option_id(@id, option_val, @id_key)} phx-click={selection_action(option_key, @myself, @id, @multiple)}>
               <div class="cursor-pointer w-full border-gray-200 border-b hover:bg-primary-400 hover:text-white">
@@ -95,6 +83,31 @@
               </div>
             </div>
           <% end %>
+          <%= if @limit_hit? && @limit_hit_text do %>
+            <div class="overflow-none shrink-0">
+              <div class="overflow-none shrink-0" id={"#{@id}-remove-limit-option"} phx-click="remove_limit" phx-target={@myself}>
+                <div class="cursor-pointer w-full border-gray-200 border-b hover:bg-primary-400 hover:text-white">
+                  <div class="flex w-full items-center p-2 pl-2 border-transparent border-l-2 relative">
+                    <div class="w-full items-center flex justify-between">
+                      <%= @limit_hit_text %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="w-full border-gray-200 border-b">
+            <div class="flex w-full items-center p-2 pl-2 border-transparent border-l-2 relative">
+              <div class="w-full items-center flex justify-between">
+                <%= if String.trim(@search) == "" do
+                  "No more options."
+                else
+                  @no_matching_options_text || "Sorry, no matching options."
+                end %>
+              </div>
+            </div>
+          </div>
         <% end %>
       </div>
     </div>

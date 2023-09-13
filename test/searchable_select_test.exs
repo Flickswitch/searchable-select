@@ -7,10 +7,15 @@ defmodule SearchableSelect.SearchableSelectTest do
 
   setup :load_test_view
 
-  test "renders all options on load", %{live: live} do
+  test "renders all options below limit on load", %{live: live} do
     Enum.each(1..4, fn i -> assert has_element?(live, "#multi-option-#{i}") end)
     Enum.each(1..4, fn i -> assert has_element?(live, "#single-option-#{i}") end)
+    Enum.each(1..2, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
+    Enum.each(3..4, fn i -> refute has_element?(live, "#single_limited-option-#{i}") end)
     Enum.each(1..4, fn i -> assert has_element?(live, "#dropdown-option-#{i}") end)
+
+    live |> element("#single_limited-remove-limit-option") |> render_click()
+    Enum.each(1..4, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
   end
 
   test "search filters items in dropdown", %{live: live} do

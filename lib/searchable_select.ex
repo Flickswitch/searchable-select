@@ -10,6 +10,92 @@ defmodule SearchableSelect do
 
   For multiple selects, selected will be a list of selected structs/maps
   For single selects, selected will be a struct/map
+
+  The following attributes are available:
+
+  - class
+    Classes to apply to outermost div, defaults to ""
+
+  - disabled
+    True=component is disabled - optional, defaults to `false`
+
+  - dropdown
+    True=selection doesn't persist after click, so behaves like a dropdown
+    instead of a select - optional, defaults to `false`
+
+  - field
+    Field name to use as part of form, required if form is set
+
+  - form
+    Phoenix.HTML.Form, optional, if set will make searchable select return
+    values via a hidden input instead of handle_info
+
+  - id
+    Component id - required
+
+  - id_key
+    Map/struct key to use when generating DOM IDs for options - optional, defaults to `:id`.
+    If your maps/structs don't have this field then no DOM IDs will be set. Not
+    needed for the select to function, just included as a testing convenience.
+
+  - label_callback
+    Function used to populate label when displaying items. Defaults to
+    `fn item -> item.name end`
+
+  - limit
+    Maximum number of entries to display. Useful for improving performance with
+    long lists. Setting to `0` removes the limit. (default: 100)
+  - limit_hit_text
+    If results are being limited, an option at the end of the list will be added
+    to notify the user about this. Clicking on on, removes the limit. Set this
+    to `nil` to hide this last option entirely. (default:
+    "(Limited results shown; refine search, or click to display all)")
+
+  - multiple
+    Optional, defaults to `false`
+    - `true`: multiple options may be selected
+    - `false`: only one option may be select
+
+  - options
+    List of maps or structs to use as options - required. Each option must have
+    a unique `:id`, which should not contain any spaces.
+
+  - no_matching_options_text
+    Text to display if a search is entered but there are no matching options.
+    Defaults to: "Sorry, no matching options."
+
+  - parent_key
+    Key to send to parent view when options are selected/unselected - required
+    unless form is set
+
+  - placeholder
+    Placeholder for the search input, defaults to "Search"
+
+  - preselected_id
+    Used to populate the component with an already-selected option upon first
+    render. Only for `multiple: false`. Specify the `id` of the desired option,
+    defaults to `nil` (no pre-selection occurs).
+
+  - preselected_ids
+    Used to populate the component with already-selected options upon first
+    render. Only for `multiple: true`. Specify a list of `id`s of the desired
+    options, defaults to [] (no pre-selection occurs).
+
+  - value_callback
+    Function used to populate the hidden input when form is set. Defaults to
+    `fn item -> item.id end`
+
+  - send_search_events
+    If set, this Component sends a `{:search, key, search_string}` message
+    whenever its search string changes. Defaults to false.
+
+  - sort_callback
+    Optional. Either `:asc` or `:desc` and optional module to use for comparison
+    (refer to `Enum.sort_by/3`)
+
+  - sort_mapping_callback
+    Optional. Function for mapping of value to sort by (refer to
+    `Enum.sort_by/3`)
   """
   use Phoenix.LiveComponent
   alias Phoenix.HTML.Form
@@ -20,50 +106,21 @@ defmodule SearchableSelect do
     {:ok, socket}
   end
 
-  @doc """
-  class - Classes to apply to outermost div, defaults to ""
-  disabled - True=component is disabled - optional, defaults to `false`
-  dropdown - True=selection doesn't persist after click, so behaves like a dropdown instead of a select - optional, defaults to `false`
-  field - Field name to use as part of form, required if form is set
-  form - Phoenix.HTML.Form, optional, if set will make searchable select return values via a hidden input instead of handle_info
-  id - Component id - required
-  id_key - Map/struct key to use when generating DOM IDs for options - optional, defaults to `:id`.
-    If your maps/structs don't have this field then no DOM IDs will be set. Not needed for the select to function, just included
-    as a testing convenience.
-  label_callback - Function used to populate label when displaying items. Defaults to `fn item -> item.name end`
-  multiple - True=multiple options may be selected, False=only one option may be select - optional, defaults to `false`
-  options - List of maps or structs to use as options - required. Each option must have a unique `:id`,
-    which should not contain any spaces.
-  no_matching_options_text - Text to display if a search is entered but there are no matching options.
-    Defaults to: "Sorry, no matching options."
-  parent_key - Key to send to parent view when options are selected/unselected - required unless form is set
-  placeholder - Placeholder for the search input, defaults to "Search"
-  preselected_id - Used to populate the component with an already-selected option upon first render. Only for `multiple: false`.
-    Specify the `id` of the desired option, defaults to `nil` (no pre-selection occurs).
-  preselected_ids - Used to populate the component with already-selected options upon first render. Only for `multiple: true`.
-    Specify a list of `id`s of the desired options, defaults to [] (no pre-selection occurs).
-  value_callback - Function used to populate the hidden input when form is set. Defaults to `fn item -> item.id end`
-  send_search_events - If set, this Component sends a `{:search, key, search_string}`
-    message whenever its search string changes. Defaults to false.
-  sort_callback - Either :asc or :desc and optional module to use for compare refer to Enum.sort_by/3
-  sort_mapping_callback - Function for mapping of value to sort by, refer to Enum.sort_by/3
-  """
   @impl true
   # this is when assigns change after the component is mounted
   def update(assigns, %{assigns: %{id: _id}} = socket) do
-    socket =
-      socket
-      |> assign(:disabled, assigns[:disabled])
-      |> assign(:placeholder, assigns[:placeholder] || "Search")
-      |> assign(:search, "")
-      |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
-      |> prep_options(assigns)
-
     socket
-    |> then(&sort_and_filter(&1, &1.assigns.options, ""))
+    |> assign(:disabled, assigns[:disabled])
+    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(:search, "")
+    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
+    |> prep_options(assigns)
+    |> sort_and_filter()
     |> then(&{:ok, &1})
   end
 
+  # credo:disable-for-lines:30 Credo.Check.Refactor.CyclomaticComplexity
+  @default_limit_hit_text "(Limited results shown; refine search, or click to display all)"
   # this is when the component is mounted
   def update(assigns, socket) do
     socket
@@ -75,6 +132,9 @@ defmodule SearchableSelect do
     |> assign(:id_key, assigns[:id_key] || :id)
     |> assign(:id, assigns.id)
     |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
+    |> assign(:limit, assigns[:limit] || 100)
+    |> assign(:limit_hit?, false)
+    |> assign(:limit_hit_text, Map.get(assigns, :limit_hit_text, @default_limit_hit_text))
     |> assign(:multiple, assigns[:multiple] || false)
     |> assign(:no_matching_options_text, assigns[:no_matching_options_text])
     |> assign(:parent_key, assigns[:parent_key])
@@ -87,13 +147,13 @@ defmodule SearchableSelect do
     |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
-    |> then(&sort_and_filter(&1, &1.assigns.options, ""))
+    |> sort_and_filter()
     |> then(&{:ok, &1})
   end
 
   @impl true
   def handle_event("pop", %{"key" => key}, %{assigns: assigns} = socket) do
-    %{options: options, selected: selected, search: search} = assigns
+    %{options: options, selected: selected} = assigns
 
     {selected, val} =
       Enum.reduce(selected, {[], nil}, fn
@@ -107,14 +167,12 @@ defmodule SearchableSelect do
     |> assign(:options, options)
     |> assign(:selected, Enum.reverse(selected))
     |> update_parent_view()
-    |> sort_and_filter(options, search)
+    |> sort_and_filter()
     |> then(&{:noreply, &1})
   end
 
   def handle_event("search", %{"value" => search} = params, socket) do
-    %{
-      assigns: %{options: options, parent_key: parent_key, send_search_events: send_search_events}
-    } = socket
+    %{assigns: %{parent_key: parent_key, send_search_events: send_search_events}} = socket
 
     if send_search_events do
       search_event_str = if params["key"] == "Enter", do: "#{search}\n", else: search
@@ -123,7 +181,7 @@ defmodule SearchableSelect do
 
     socket
     |> assign(:search, search)
-    |> sort_and_filter(options, search)
+    |> sort_and_filter()
     |> then(&{:noreply, &1})
   end
 
@@ -155,8 +213,15 @@ defmodule SearchableSelect do
     |> assign(:options, options)
     |> assign(:selected, selected)
     |> assign(:search, "")
-    |> sort_and_filter(options, "")
+    |> sort_and_filter()
     |> update_parent_view()
+    |> then(&{:noreply, &1})
+  end
+
+  def handle_event("remove_limit", _, socket) do
+    socket
+    |> assign(limit: 0, limit_hit?: false, search: "")
+    |> sort_and_filter()
     |> then(&{:noreply, &1})
   end
 
@@ -214,26 +279,35 @@ defmodule SearchableSelect do
     end
   end
 
-  def sort_and_filter(%{assigns: assigns} = socket, options, search) do
-    socket
-    |> assign(:visible_options, filter(options, search))
-    |> sort_options(assigns[:sort_mapping_callback], assigns[:sort_callback])
-  end
+  def sort_and_filter(%{assigns: assigns} = socket) do
+    {limit_hit?, visible_options} =
+      assigns.options
+      |> filter(assigns.search)
+      |> limit_options(assigns.limit)
 
-  def sort_options(socket, sort_mapping_callback, sort_callbak \\ :asc)
-
-  def sort_options(socket, nil, nil), do: socket
-
-  def sort_options(socket, sort_mapping_callback, sort_callback) do
     visible_options =
-      Enum.sort_by(
-        socket.assigns.visible_options,
-        fn {_, x} -> sort_mapping_callback.(x) end,
-        sort_callback
-      )
+      sort_options(visible_options, assigns.sort_mapping_callback, assigns.sort_callback)
 
-    assign(socket, :visible_options, visible_options)
+    assign(socket, limit_hit?: limit_hit?, visible_options: visible_options)
   end
+
+  defp sort_options(visible_options, nil, nil), do: visible_options
+
+  defp sort_options(visible_options, sort_mapping_callback, sort_callback) do
+    Enum.sort_by(visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
+  end
+
+  defp limit_options(options, limit) when is_integer(limit) and limit > 0 do
+    {count, limited_options} =
+      Enum.reduce_while(options, {0, []}, fn
+        _, {count, list} when count >= limit -> {:halt, {count, list}}
+        option, {count, list} -> {:cont, {count + 1, [option | list]}}
+      end)
+
+    if count >= limit, do: {true, Enum.reverse(limited_options)}, else: {false, options}
+  end
+
+  defp limit_options(options, _), do: {false, options}
 
   def prep_options(%{assigns: assigns} = socket, %{options: options}) do
     gb_options =
