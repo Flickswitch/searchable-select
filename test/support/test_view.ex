@@ -148,9 +148,8 @@ defmodule SearchableSelect.TestView do
       options={@options}
       parent_key="selected_options"
       preselected_ids={[98, 99]}
-    />
-
-    last_search_message_params: <p id="last_search_message_params_p">
+    /> last_search_message_params:
+    <p id="last_search_message_params_p">
       <%= inspect(@last_search_message_params) %>
     </p>
     """
