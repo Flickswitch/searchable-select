@@ -124,6 +124,7 @@ defmodule SearchableSelect do
   # this is when the component is mounted
   def update(assigns, socket) do
     socket
+    |> assign(:hooked_field_id, assigns[:hooked_field_id] || nil)
     |> assign(:class, assigns[:class] || "")
     |> assign(:disabled, assigns[:disabled] || false)
     |> assign(:dropdown, assigns[:dropdown] || false)
@@ -348,6 +349,10 @@ defmodule SearchableSelect do
   end
 
   def filter(:none, acc, _search), do: Enum.reverse(acc)
+
+  def update_parent_view(%{assigns: %{hooked_field_id: hook_id}} = socket) when hook_id != nil do
+    push_event(socket, "searchable_select", %{id: hook_id})
+  end
 
   def update_parent_view(%{assigns: %{form: form, id: id}} = socket) when form != nil do
     push_event(socket, "searchable_select", %{id: get_hook_id(id)})
