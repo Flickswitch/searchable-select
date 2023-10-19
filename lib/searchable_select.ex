@@ -119,6 +119,39 @@ defmodule SearchableSelect do
     |> then(&{:ok, &1})
   end
 
+  attr :field, :any,
+    required: true,
+    doc: "a Phoenix.HTML.FormField struct identifying the form's field"
+
+  attr :form, :any,
+    required: false,
+    doc: "a Phoenix.HTML. struct identifying the for"
+
+  attr :id, :string,
+    doc:
+      ~S(an id to assign to the component. If none is provided, `#{form_name}_#{field}_live_select_component` will be used)
+
+  attr :disabled, :boolean, doc: "set this to `true` to disable the input field"
+  attr :dropdown, :boolean, doc: "set this to `true` to disable the input field"
+  attr :id_key, :string, doc: "ID Key"
+  attr :placehoder, :string, default: "Search", doc: "Placeholder text for the input"
+  attr :label_callback, :string, doc: "Label callback for formatting label of option items"
+  attr :limit, :integer, doc: "Label callback for formatting label of option items"
+  attr :limit_hit?, :boolean, doc: "Label callback for formatting label of option items"
+  attr :limit_hit_text?, :string, doc: "Label callback for formatting label of option items"
+  attr :multiple, :boolean, default: false, doc: "Allow Multiple selection"
+  attr :no_matching_options_text, :string, doc: "Text if search does not return any options"
+  attr :parent_key, :string, doc: "Text if search does not return any options"
+  attr :search, :string, default: "", doc: "?"
+  attr :selected, :list, default: [], doc: "Item selected"
+  attr :send_search_events, :boolean, default: false, doc: "Send search events to parent process"
+  attr :sort_callback, :string, doc: "Sort option items callback function"
+  attr :sort_mapping_callback, :string, doc: "Sort option items callback function"
+
+  attr :value_callback, :string,
+    default: fn item -> item.id end,
+    doc: "Callback to overload value getting from item"
+
   # credo:disable-for-lines:30 Credo.Check.Refactor.CyclomaticComplexity
   @default_limit_hit_text "(Limited results shown; refine search, or click to display all)"
   # this is when the component is mounted
@@ -127,7 +160,20 @@ defmodule SearchableSelect do
     |> assign(:class, assigns[:class] || "")
     |> assign(:disabled, assigns[:disabled] || false)
     |> assign(:dropdown, assigns[:dropdown] || false)
-    |> assign(:field, assigns[:field])
+    |> assign(:field, fn
+      %Phoenix.HTML.FormField{} = field, _ ->
+        field
+
+      field, %{form: form} ->
+        IO.warn(
+          "instead of passing separate form and field attributes, pass a single field attribute of type Phoenix.HTML.FormField"
+        )
+
+        to_form(form)[field]
+
+      _, _ ->
+        raise "if you pass field as atom or string, you also have to pass a form"
+    end)
     |> assign(:form, assigns[:form])
     |> assign(:id_key, assigns[:id_key] || :id)
     |> assign(:id, assigns.id)
