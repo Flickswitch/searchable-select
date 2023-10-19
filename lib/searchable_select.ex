@@ -100,25 +100,6 @@ defmodule SearchableSelect do
   use Phoenix.LiveComponent
   alias Phoenix.HTML.Form
   alias Phoenix.LiveView.JS
-
-  @impl true
-  def mount(socket) do
-    {:ok, socket}
-  end
-
-  @impl true
-  # this is when assigns change after the component is mounted
-  def update(assigns, %{assigns: %{id: _id}} = socket) do
-    socket
-    |> assign(:disabled, assigns[:disabled])
-    |> assign(:placeholder, assigns[:placeholder] || "Search")
-    |> assign(:search, "")
-    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
-    |> prep_options(assigns)
-    |> sort_and_filter()
-    |> then(&{:ok, &1})
-  end
-
   attr :field, :any,
     required: true,
     doc: "a Phoenix.HTML.FormField struct identifying the form's field"
@@ -148,9 +129,28 @@ defmodule SearchableSelect do
   attr :sort_callback, :string, doc: "Sort option items callback function"
   attr :sort_mapping_callback, :string, doc: "Sort option items callback function"
 
-  attr :value_callback, :string,
-    default: fn item -> item.id end,
-    doc: "Callback to overload value getting from item"
+  # attr :value_callback, :any,
+  #   default: &fn item -> item.id end,
+  #   doc: "Callback to overload value getting from item"
+  @impl true
+  def mount(socket) do
+    {:ok, socket}
+  end
+
+  @impl true
+  # this is when assigns change after the component is mounted
+  def update(assigns, %{assigns: %{id: _id}} = socket) do
+    socket
+    |> assign(:disabled, assigns[:disabled])
+    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(:search, "")
+    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
+    |> prep_options(assigns)
+    |> sort_and_filter()
+    |> then(&{:ok, &1})
+  end
+
+
 
   # credo:disable-for-lines:30 Credo.Check.Refactor.CyclomaticComplexity
   @default_limit_hit_text "(Limited results shown; refine search, or click to display all)"
