@@ -5,7 +5,7 @@ defmodule SearchableSelect.MixProject do
     [
       app: :searchable_select,
       version: "0.1.0",
-      elixir: "~> 1.13",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -24,7 +24,7 @@ defmodule SearchableSelect.MixProject do
     [
       {:credo, "~> 1.6", only: :dev},
       {:floki, ">= 0.30.0", only: :test},
-      {:phoenix_live_view, "~> 0.17"},
+      {:phoenix_live_view, "~> 0.20"},
       {:jason, "~> 1.0", only: [:dev, :test]}
     ]
   end
