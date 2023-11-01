@@ -16,7 +16,6 @@ defmodule SearchableSelect.TestView do
 
     socket =
       socket
-      |> assign(:form, to_form(%{}, as: :test))
       |> assign(:last_search_message_params, nil)
       |> assign(:options, example_options)
       |> assign(:selected_options, [])
@@ -104,17 +103,17 @@ defmodule SearchableSelect.TestView do
       parent_key="selected_options"
     />
     <span id="selected-options"><%= get_selected_id_list(@selected_options) %></span>
-    <.form for={@form}>
+    <.form for={:test} let={f} as={:test}>
       <.live_component
         field={:single_select}
-        form={@form}
+        form={f}
         id="single_form"
         module={SearchableSelect}
         options={@options}
       />
       <.live_component
         field={:multi_select}
-        form={@form}
+        form={f}
         id="multi_form"
         module={SearchableSelect}
         multiple
@@ -149,8 +148,9 @@ defmodule SearchableSelect.TestView do
       options={@options}
       parent_key="selected_options"
       preselected_ids={[98, 99]}
-    /> last_search_message_params:
-    <p id="last_search_message_params_p">
+    />
+
+    last_search_message_params: <p id="last_search_message_params_p">
       <%= inspect(@last_search_message_params) %>
     </p>
     """
