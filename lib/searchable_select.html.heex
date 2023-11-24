@@ -28,6 +28,7 @@
           phx-click={show_dropdown(%JS{}, @id)}
           phx-keyup={JS.push("search", target: @myself) |> show_dropdown(@id)}
           phx-target={@myself}
+          autocomplete="off"
         />
       </div>
     </div>
