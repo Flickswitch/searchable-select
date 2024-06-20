@@ -103,7 +103,7 @@ defmodule SearchableSelect.TestView do
       parent_key="selected_options"
     />
     <span id="selected-options"><%= get_selected_id_list(@selected_options) %></span>
-    <.form for={:test} let={f} as={:test}>
+    <.form for={%{}} :let={f} as={:test}>
       <.live_component
         field={:single_select}
         form={f}
