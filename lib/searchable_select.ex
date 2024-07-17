@@ -85,6 +85,10 @@ defmodule SearchableSelect do
     Function used to populate the hidden input when form is set. Defaults to
     `fn item -> item.id end`
 
+  - send_change_events
+    If set, this Component sends a `{:change, selected}` message
+    whenever there is a change in the selected items. Defaults to false.
+
   - send_search_events
     If set, this Component sends a `{:search, key, search_string}` message
     whenever its search string changes. Defaults to false.
@@ -141,6 +145,7 @@ defmodule SearchableSelect do
     |> assign(:placeholder, assigns[:placeholder] || "Search")
     |> assign(:search, "")
     |> assign(:selected, assigns[:selected] || [])
+    |> assign(:send_change_events, assigns[:send_change_events] || false)
     |> assign(:send_search_events, assigns[:send_search_events] || false)
     |> assign(:sort_callback, assigns[:sort_callback])
     |> assign(:sort_mapping_callback, assigns[:sort_mapping_callback])
@@ -208,6 +213,7 @@ defmodule SearchableSelect do
       end
 
     selected = selected ++ [{key, val}]
+    if socket.assigns.send_change_events, do: send(self(), {:change, selected})
 
     socket
     |> assign(:options, options)
@@ -228,7 +234,7 @@ defmodule SearchableSelect do
   def pop_cross(assigns) do
     ~H"""
     <svg
-      class="fill-current h-4 w-4 my-auto"
+      class="my-auto h-4 w-4 fill-current"
       id={get_pop_cross_id(@component_id, elem(@selected, 1), @id_key)}
       role="button"
       viewBox="0 0 20 20"
