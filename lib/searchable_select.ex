@@ -86,7 +86,7 @@ defmodule SearchableSelect do
     `fn item -> item.id end`
 
   - send_change_events
-    If set, this Component sends a `{:change, key, selected}` message
+    If set, this Component sends a `{:select, key, selected}` message
     whenever there is a change in the selected items. Defaults to false.
 
   - send_search_events
