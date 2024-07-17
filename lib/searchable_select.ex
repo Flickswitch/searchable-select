@@ -214,10 +214,6 @@ defmodule SearchableSelect do
 
     selected = selected ++ [{key, val}]
 
-    if socket.assigns.send_change_events do
-      send(self(), {:change, socket.assigns.parent_key, selected})
-    end
-
     socket
     |> assign(:options, options)
     |> assign(:selected, selected)
@@ -358,7 +354,14 @@ defmodule SearchableSelect do
 
   def filter(:none, acc, _search), do: Enum.reverse(acc)
 
-  def update_parent_view(%{assigns: %{form: form, id: id}} = socket) when form != nil do
+  def update_parent_view(%{assigns: %{form: form} = assigns} = socket) when form != nil do
+    %{id: id, send_change_events: send_change_events, parent_key: parent_key, selected: selected} =
+      assigns
+
+    if send_change_events do
+      send(self(), {:select, parent_key, Enum.map(selected, fn {_key, val} -> val end)})
+    end
+
     push_event(socket, "searchable_select", %{id: get_hook_id(id)})
   end
 
