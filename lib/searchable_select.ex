@@ -86,7 +86,7 @@ defmodule SearchableSelect do
     `fn item -> item.id end`
 
   - send_change_events
-    If set, this Component sends a `{:change, selected}` message
+    If set, this Component sends a `{:change, key, selected}` message
     whenever there is a change in the selected items. Defaults to false.
 
   - send_search_events
@@ -213,7 +213,10 @@ defmodule SearchableSelect do
       end
 
     selected = selected ++ [{key, val}]
-    if socket.assigns.send_change_events, do: send(self(), {:change, selected})
+
+    if socket.assigns.send_change_events do
+      send(self(), {:change, socket.assigns.parent_key, selected})
+    end
 
     socket
     |> assign(:options, options)
