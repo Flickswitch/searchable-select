@@ -110,6 +110,7 @@ defmodule SearchableSelect.TestView do
         id="single_form"
         module={SearchableSelect}
         options={@options}
+        send_change_events
       />
       <.live_component
         field={:multi_select}
@@ -118,6 +119,7 @@ defmodule SearchableSelect.TestView do
         module={SearchableSelect}
         multiple
         options={@options}
+        send_change_events
       />
       <.live_component
         id="single_form_preselected"
