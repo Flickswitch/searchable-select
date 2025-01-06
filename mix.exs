@@ -23,10 +23,9 @@ defmodule SearchableSelect.MixProject do
   defp deps do
     [
       {:credo, "~> 1.6", only: :dev},
-      {:floki, ">= 0.30.0", only: :test},
-      {:phoenix_live_view, "~> 0.20.0"},
-      {:phoenix_view, "~> 2.0.4"},
-      {:jason, "~> 1.0", only: [:dev, :test]}
+      {:floki, "~> 0.30", only: :test},
+      {:jason, "~> 1.0", only: [:dev, :test]},
+      {:phoenix_live_view, "~> 0.20.0 or ~> 1.0"}
     ]
   end
 
