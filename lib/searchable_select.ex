@@ -133,6 +133,7 @@ defmodule SearchableSelect do
     |> assign(:dropdown, assigns[:dropdown] || false)
     |> assign(:field, assigns[:field])
     |> assign(:form, assigns[:form])
+    |> assign(:group_by, assigns[:group_by] || [])
     |> assign(:id_key, assigns[:id_key] || :id)
     |> assign(:id, assigns.id)
     |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
