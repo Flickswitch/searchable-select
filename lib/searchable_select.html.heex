@@ -72,9 +72,9 @@
       <%!-- dropdown options --%>
       <div class="flex flex-col w-full overflow-y-auto max-h-64">
         <%= if Enum.any?(@visible_options) do %>
-          <%= if Enum.any?(@group_by) do %>
-            <%= for group <- @group_by do %>
-              <% matching_options = Enum.filter(@visible_options, fn {_, option_val} -> option_val.country.name == group.value end) %>
+          <%= if !is_nil(@grouper) do %>
+            <%= for group <- @grouper.groups do %>
+              <% matching_options = Enum.filter(@visible_options, &@grouper.group_by_fn.(&1, group)) %>
               <%= if Enum.any?(matching_options) do %>
                 <div class="text-sm font-medium mb-2 border-b border-gray-200 p-2"> <%= group.name %></div>
                 <%= for {option_key, option_val} <- matching_options do %>
