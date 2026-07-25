@@ -22,10 +22,10 @@ defmodule SearchableSelect.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "~> 1.6", only: :dev},
+      {:credo, "~> 1.7", only: :dev},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:lazy_html, "~> 0.1", only: :test},
-      {:phoenix_live_view, "~> 1.2"}
+      {:phoenix_live_view, "~> 1.1"}
     ]
   end
 

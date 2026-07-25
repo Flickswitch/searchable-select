@@ -14,9 +14,13 @@ defmodule SearchableSelect.TestView do
       %{id: 7, name: "Foo"}
     ]
 
+    view = self()
+
     socket =
       socket
       |> assign(:last_search_message_params, nil)
+      |> assign(:on_search, &send(view, {:search, "selected_options", &1}))
+      |> assign(:on_select, &send(view, {:select, "selected_options", &1}))
       |> assign(:options, example_options)
       |> assign(:selected_options, [])
 
@@ -51,111 +55,95 @@ defmodule SearchableSelect.TestView do
   @impl true
   def render(assigns) do
     ~H"""
-    <.live_component
+    <SearchableSelect.searchable_select
       id="multi"
-      module={SearchableSelect}
       multiple
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="multi_custom_no_matching_options_text"
-      module={SearchableSelect}
       multiple
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
       no_matching_options_text="These aren't the droids you're looking for..."
-      send_search_events
+      on_search={@on_search}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="single"
-      module={SearchableSelect}
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="single_limited"
-      module={SearchableSelect}
       options={@options}
       limit={2}
-      parent_key="selected_options"
+      on_select={@on_select}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="single_unlimited"
-      module={SearchableSelect}
       options={@options}
       limit={0}
-      parent_key="selected_options"
+      on_select={@on_select}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="single_preselected"
-      module={SearchableSelect}
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
       preselected_id={4}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="multi_preselected"
-      module={SearchableSelect}
       multiple
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
       preselected_ids={[1, 2]}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       dropdown
       id="dropdown"
-      module={SearchableSelect}
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
     />
     <span id="selected-options">{get_selected_id_list(@selected_options)}</span>
     <.form :let={f} for={%{}} as={:test}>
-      <.live_component
-        field={:single_select}
-        form={f}
+      <SearchableSelect.searchable_select
+        field={f[:single_select]}
         id="single_form"
-        module={SearchableSelect}
+        on_select={@on_select}
         options={@options}
-        send_change_events
       />
-      <.live_component
-        field={:multi_select}
-        form={f}
+      <SearchableSelect.searchable_select
+        field={f[:multi_select]}
         id="multi_form"
-        module={SearchableSelect}
         multiple
+        on_select={@on_select}
         options={@options}
-        send_change_events
       />
-      <.live_component
+      <SearchableSelect.searchable_select
         id="single_form_preselected"
-        module={SearchableSelect}
         options={@options}
-        parent_key="selected_options"
+        on_select={@on_select}
         preselected_id={3}
       />
-      <.live_component
+      <SearchableSelect.searchable_select
         id="multi_form_preselected"
-        module={SearchableSelect}
         multiple
         options={@options}
-        parent_key="selected_options"
+        on_select={@on_select}
         preselected_ids={[1, 2]}
       />
     </.form>
-    <.live_component
+    <SearchableSelect.searchable_select
       id="single_invalid_preselect"
-      module={SearchableSelect}
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
       preselected_id={99}
     />
-    <.live_component
+    <SearchableSelect.searchable_select
       id="multi_invalid_preselect"
-      module={SearchableSelect}
       options={@options}
-      parent_key="selected_options"
+      on_select={@on_select}
       preselected_ids={[98, 99]}
     /> last_search_message_params:
     <p id="last_search_message_params_p">

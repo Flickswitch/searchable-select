@@ -2,14 +2,31 @@ defmodule SearchableSelect do
   @moduledoc """
   Select component with nicer styling than HTML5 select
 
-  Your view will need to implement a callback like this:
-  `handle_info({:select, parent_key, selected}, socket)`
+  Render it with `searchable_select/1` from a LiveView or another LiveComponent.
+  `searchable_select/1` is the only supported entry point - rendering the module
+  directly with `<.live_component module={SearchableSelect} />` bypasses the
+  declared attributes and their defaults.
 
-  Alternatively you can use it as part of a normal Phoenix HTML form by setting form and field
-  assigns, and an optional callback for getting the value of each struct.
+  To be told about selections, pass an `on_select` callback:
 
-  For multiple selects, selected will be a list of selected structs/maps
-  For single selects, selected will be a struct/map
+      <SearchableSelect.searchable_select
+        id="customer-select"
+        options={@customers}
+        on_select={@on_customer_select}
+      />
+
+  Assign the callback once in `mount/3` rather than building it inline in
+  `render/1`, so change tracking can tell that it has not changed:
+
+      view = self()
+      assign(socket, :on_customer_select, &send(view, {:select, :customer, &1}))
+
+  For multiple selects, the callback receives a list of selected structs/maps.
+  For single selects, it receives a struct/map, or `nil` once the selection is
+  cleared.
+
+  Alternatively you can use it as part of a normal Phoenix HTML form by passing
+  a `field`, and an optional callback for getting the value of each struct.
 
   The following attributes are available:
 
@@ -24,11 +41,8 @@ defmodule SearchableSelect do
     instead of a select - optional, defaults to `false`
 
   - field
-    Field name to use as part of form, required if form is set
-
-  - form
-    Phoenix.HTML.Form, optional, if set will make searchable select return
-    values via a hidden input instead of handle_info
+    `Phoenix.HTML.FormField` (i.e. `@form[:your_field]`), optional. If set, the
+    select returns values via hidden inputs instead of via `on_select`.
 
   - id
     Component id - required
@@ -64,9 +78,14 @@ defmodule SearchableSelect do
     Text to display if a search is entered but there are no matching options.
     Defaults to: "Sorry, no matching options."
 
-  - parent_key
-    Key to send to parent view when options are selected/unselected - required
-    unless form is set
+  - on_select
+    Arity-1 function called with the current selection whenever it changes.
+    Optional, defaults to `nil` (no notification).
+
+  - on_search
+    Arity-1 function called with the search string whenever it changes. A
+    trailing "\\n" is appended when the change came from pressing Enter.
+    Optional, defaults to `nil` (no notification).
 
   - placeholder
     Placeholder for the search input, defaults to "Search"
@@ -82,16 +101,8 @@ defmodule SearchableSelect do
     options, defaults to [] (no pre-selection occurs).
 
   - value_callback
-    Function used to populate the hidden input when form is set. Defaults to
+    Function used to populate the hidden input when field is set. Defaults to
     `fn item -> item.id end`
-
-  - send_change_events
-    If set, this Component sends a `{:select, key, selected}` message
-    whenever there is a change in the selected items. Defaults to false.
-
-  - send_search_events
-    If set, this Component sends a `{:search, key, search_string}` message
-    whenever its search string changes. Defaults to false.
 
   - sort_callback
     Optional. Either `:asc` or `:desc` and optional module to use for comparison
@@ -110,29 +121,26 @@ defmodule SearchableSelect do
   attr(:class, :string, default: "")
   attr(:disabled, :boolean, default: false)
   attr(:dropdown, :boolean, default: false)
-  attr(:field, :atom, default: nil)
-  attr(:form, :any, default: nil)
+  attr(:field, Phoenix.HTML.FormField, default: nil)
   attr(:grouper, :any, default: nil)
   attr(:id_key, :atom, default: :id)
-  attr(:label_callback, :any, default: nil)
+  attr(:label_callback, :any, default: &SearchableSelect.default_label/1)
   attr(:limit, :integer, default: 100)
 
-  attr(:limit_hit_text, :string,
+  attr(:limit_hit_text, :any,
     default: "(Limited results shown; refine search, or click to display all)"
   )
 
   attr(:multiple, :boolean, default: false)
   attr(:no_matching_options_text, :string, default: nil)
-  attr(:parent_key, :any, default: nil)
+  attr(:on_search, :any, default: nil)
+  attr(:on_select, :any, default: nil)
   attr(:placeholder, :string, default: "Search")
   attr(:preselected_id, :any, default: nil)
   attr(:preselected_ids, :list, default: [])
-  attr(:selected, :list, default: [])
-  attr(:send_change_events, :boolean, default: false)
-  attr(:send_search_events, :boolean, default: false)
   attr(:sort_callback, :any, default: nil)
   attr(:sort_mapping_callback, :any, default: nil)
-  attr(:value_callback, :any, default: nil)
+  attr(:value_callback, :any, default: &SearchableSelect.default_value/1)
 
   def searchable_select(assigns) do
     ~H"""
@@ -140,48 +148,27 @@ defmodule SearchableSelect do
     """
   end
 
+  def default_label(item), do: item.name
+  def default_value(item), do: item.id
+
   @impl true
-  # this is when assigns change after the component is mounted
+  # assigns changed after mount - the selection belongs to the component now, so
+  # it survives, and preselection is not reapplied
   def update(assigns, %{assigns: %{id: _id}} = socket) do
     socket
-    |> assign(:disabled, assigns[:disabled])
-    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(assigns)
     |> assign(:search, "")
-    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
     |> sort_and_filter()
     |> then(&{:ok, &1})
   end
 
-  # credo:disable-for-lines:30 Credo.Check.Refactor.CyclomaticComplexity
-  @default_limit_hit_text "(Limited results shown; refine search, or click to display all)"
-  # this is when the component is mounted
   def update(assigns, socket) do
     socket
-    |> assign(:class, assigns[:class] || "")
-    |> assign(:disabled, assigns[:disabled] || false)
-    |> assign(:dropdown, assigns[:dropdown] || false)
-    |> assign(:field, assigns[:field])
-    |> assign(:form, assigns[:form])
-    |> assign(:grouper, assigns[:grouper])
-    |> assign(:id_key, assigns[:id_key] || :id)
-    |> assign(:id, assigns.id)
-    |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
-    |> assign(:limit, assigns[:limit] || 100)
-    |> assign(:limit_hit?, false)
-    |> assign(:limit_hit_text, Map.get(assigns, :limit_hit_text, @default_limit_hit_text))
-    |> assign(:multiple, assigns[:multiple] || false)
-    |> assign(:no_matching_options_text, assigns[:no_matching_options_text])
-    |> assign(:parent_key, assigns[:parent_key])
-    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(assigns)
     |> assign(:search, "")
-    |> assign(:selected, assigns[:selected] || [])
-    |> assign(:send_change_events, assigns[:send_change_events] || false)
-    |> assign(:send_search_events, assigns[:send_search_events] || false)
-    |> assign(:sort_callback, assigns[:sort_callback])
-    |> assign(:sort_mapping_callback, assigns[:sort_mapping_callback])
-    |> assign(:value_callback, assigns[:value_callback] || fn item -> item.id end)
-    |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
+    |> assign(:selected, [])
+    |> pre_select(assigns)
     |> prep_options(assigns)
     |> sort_and_filter()
     |> then(&{:ok, &1})
@@ -208,11 +195,8 @@ defmodule SearchableSelect do
   end
 
   def handle_event("search", %{"value" => search} = params, socket) do
-    %{assigns: %{parent_key: parent_key, send_search_events: send_search_events}} = socket
-
-    if send_search_events do
-      search_event_str = if params["key"] == "Enter", do: "#{search}\n", else: search
-      send(self(), {:search, parent_key, search_event_str})
+    if on_search = socket.assigns.on_search do
+      on_search.(if params["key"] == "Enter", do: "#{search}\n", else: search)
     end
 
     socket
@@ -222,14 +206,14 @@ defmodule SearchableSelect do
   end
 
   def handle_event("select", %{"key" => key}, %{assigns: %{dropdown: true} = assigns} = socket) do
-    %{options: options, parent_key: parent_key} = assigns
+    %{on_select: on_select, options: options} = assigns
 
     case :gb_trees.lookup(key, options) do
       :none ->
         {:noreply, socket}
 
       {:value, val} ->
-        send(self(), {:select, parent_key, val})
+        if on_select, do: on_select.(val)
 
         socket
         |> assign(:search, "")
@@ -267,7 +251,7 @@ defmodule SearchableSelect do
 
   def handle_event("remove_limit", _, socket) do
     socket
-    |> assign(limit: 0, limit_hit?: false, search: "")
+    |> assign(limit: 0, search: "")
     |> sort_and_filter()
     |> then(&{:noreply, &1})
   end
@@ -283,7 +267,7 @@ defmodule SearchableSelect do
       phx-value-key={elem(@selected, 0)}
       phx-target={@target}
     >
-      <svg aria-hidden="true" viewBox="0 0 20 20">
+      <svg class="h-full w-full" aria-hidden="true" viewBox="0 0 20 20">
         <path d="M14.348,14.849c-0.469,0.469-1.229,0.469-1.697,0L10,11.819l-2.651,3.029c-0.469,0.469-1.229,0.469-1.697,0 c-0.469-0.469-0.469-1.229,0-1.697l2.758-3.15L5.651,6.849c-0.469-0.469-0.469-1.228,0-1.697s1.228-0.469,1.697,0L10,8.183 l2.651-3.031c0.469-0.469,1.228-0.469,1.697,0s0.469,1.229,0,1.697l-2.758,3.152l2.758,3.15 C14.817,13.62,14.817,14.38,14.348,14.849z" />
       </svg>
     </button>
@@ -306,21 +290,15 @@ defmodule SearchableSelect do
   end
 
   def hide_dropdown(id, js \\ %JS{}) do
-    js
-    |> JS.hide(to: "##{id}-dropdown")
-    |> JS.set_attribute({"aria-expanded", "false"}, to: "##{id}-search")
+    JS.hide(js, to: "##{id}-dropdown")
   end
 
   def show_dropdown(js, id) do
-    js
-    |> JS.show(to: "##{id}-dropdown")
-    |> JS.set_attribute({"aria-expanded", "true"}, to: "##{id}-search")
+    JS.show(js, to: "##{id}-dropdown")
   end
 
   def toggle_dropdown(id) do
-    %JS{}
-    |> JS.toggle(to: "##{id}-dropdown")
-    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "##{id}-search")
+    JS.toggle(%JS{}, to: "##{id}-dropdown")
   end
 
   def selection_action(key, target, id, multiple) do
@@ -403,40 +381,30 @@ defmodule SearchableSelect do
 
   def filter(:none, acc, _search), do: Enum.reverse(acc)
 
-  def update_parent_view(%{assigns: %{form: form} = assigns} = socket) when form != nil do
-    %{id: id, send_change_events: send_change_events, parent_key: parent_key, selected: selected} =
+  defp update_parent_view(%{assigns: assigns} = socket) do
+    %{field: field, id: id, multiple: multiple, on_select: on_select, selected: selected} =
       assigns
 
-    if send_change_events do
-      send(self(), {:select, parent_key, Enum.map(selected, fn {_key, val} -> val end)})
+    if on_select, do: on_select.(selection(selected, multiple))
+
+    if field do
+      push_event(socket, "searchable_select", %{id: get_hook_id(id)})
+    else
+      socket
     end
-
-    push_event(socket, "searchable_select", %{id: get_hook_id(id)})
   end
 
-  def update_parent_view(%{assigns: %{multiple: true} = assigns} = socket) do
-    %{parent_key: parent_key, selected: selected} = assigns
-    send(self(), {:select, parent_key, Enum.map(selected, fn {_key, val} -> val end)})
-    socket
-  end
-
-  def update_parent_view(%{assigns: %{parent_key: parent_key, selected: []}} = socket) do
-    send(self(), {:select, parent_key, nil})
-    socket
-  end
-
-  def update_parent_view(%{assigns: %{parent_key: parent_key, selected: [{_, val}]}} = socket) do
-    send(self(), {:select, parent_key, val})
-    socket
-  end
+  defp selection(selected, true), do: Enum.map(selected, fn {_key, val} -> val end)
+  defp selection([], false), do: nil
+  defp selection([{_key, val}], false), do: val
 
   def hidden_form_input(%{selected_val: selected_val, value_callback: value_callback} = assigns) do
     assigns = assign(assigns, :value, value_callback.(selected_val))
 
     ~H"""
     <input
-      id={if @multiple, do: Form.input_id(@form, @field, @value), else: Form.input_id(@form, @field)}
-      name={Form.input_name(@form, @field) <> if @multiple, do: "[]", else: ""}
+      id={if @multiple, do: Form.input_id(@field.form, @field.field, @value), else: @field.id}
+      name={@field.name <> if @multiple, do: "[]", else: ""}
       type="hidden"
       value={@value}
     />

@@ -24,9 +24,21 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#single-search[aria-controls=single-dropdown]")
     assert has_element?(live, "#single-option-1[type=button]")
     assert has_element?(live, "#single-caret[type=button]")
+    assert has_element?(live, "#single-caret svg.h-full.w-full")
+    assert has_element?(live, "#single_preselected-pop-cross-4 svg.h-full.w-full")
   end
 
-  test "ignores stale select events" do
+  test "ignores stale events for select and pop branches", %{live: live} do
+    live |> element("#single-option-1") |> render_click(%{"key" => "missing"})
+    live |> element("#dropdown-option-1") |> render_click(%{"key" => "missing"})
+
+    live |> element("#single-option-1") |> render_click()
+    live |> element("#single-pop-cross-1") |> render_click(%{"key" => "missing"})
+
+    assert has_element?(live, "#single-pop-cross-1")
+  end
+
+  test "ignores stale select events without changing the socket" do
     socket = %Phoenix.LiveView.Socket{
       assigns: %{options: :gb_trees.empty(), selected: [], multiple: false}
     }
@@ -156,6 +168,19 @@ defmodule SearchableSelect.SearchableSelectTest do
 
     live |> element("#single-pop-cross-2") |> render_click()
     assert has_element?(live, "#single-option-2")
+  end
+
+  test "view can change available options dynamically without messing up selection, multiple=true",
+       %{live: live} do
+    live |> element("#multi-option-1") |> render_click()
+    live |> element("#multi-option-2") |> render_click()
+
+    send(live.pid, {:change_options, [%{id: 1, name: "Ayy"}, %{id: 2, name: "Bar"}]})
+
+    assert has_element?(live, "#multi-pop-cross-1")
+    assert has_element?(live, "#multi-pop-cross-2")
+    refute has_element?(live, "#multi-option-1")
+    refute has_element?(live, "#multi-option-2")
   end
 
   test "form mode pushes event and creates hidden inputs when changing single select", %{
