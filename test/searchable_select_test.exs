@@ -1,6 +1,6 @@
 defmodule SearchableSelect.SearchableSelectTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Test
 
   import Phoenix.LiveViewTest
   @endpoint SearchableSelect.Endpoint
@@ -12,10 +12,18 @@ defmodule SearchableSelect.SearchableSelectTest do
     Enum.each(1..4, fn i -> assert has_element?(live, "#single-option-#{i}") end)
     Enum.each(1..2, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
     Enum.each(3..4, fn i -> refute has_element?(live, "#single_limited-option-#{i}") end)
+    Enum.each(1..4, fn i -> assert has_element?(live, "#single_unlimited-option-#{i}") end)
     Enum.each(1..4, fn i -> assert has_element?(live, "#dropdown-option-#{i}") end)
 
     live |> element("#single_limited-remove-limit-option") |> render_click()
     Enum.each(1..4, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
+  end
+
+  test "renders combobox and listbox accessibility attributes", %{live: live} do
+    assert has_element?(live, "#single-search[role=combobox]")
+    assert has_element?(live, "#single-search[aria-controls=single-dropdown]")
+    assert has_element?(live, "#single-dropdown[role=listbox]")
+    assert has_element?(live, "#single-option-1[role=option]")
   end
 
   test "search filters items in dropdown", %{live: live} do
@@ -149,18 +157,18 @@ defmodule SearchableSelect.SearchableSelectTest do
 
     live |> element("#single_form-option-1") |> render_click()
 
-    assert has_element?(live, "#test_single_select[value=1]")
+    assert has_element?(live, "#test_single_select[value=\"1\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-option-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=1]")
-    assert has_element?(live, "#test_single_select[value=2]")
+    refute has_element?(live, "#test_single_select[value=\"1\"]")
+    assert has_element?(live, "#test_single_select[value=\"2\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-pop-cross-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=2]")
+    refute has_element?(live, "#test_single_select[value=\"2\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 

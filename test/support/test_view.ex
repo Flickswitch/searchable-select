@@ -81,6 +81,13 @@ defmodule SearchableSelect.TestView do
       parent_key="selected_options"
     />
     <.live_component
+      id="single_unlimited"
+      module={SearchableSelect}
+      options={@options}
+      limit={0}
+      parent_key="selected_options"
+    />
+    <.live_component
       id="single_preselected"
       module={SearchableSelect}
       options={@options}

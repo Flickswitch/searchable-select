@@ -114,9 +114,8 @@ defmodule SearchableSelect do
   # this is when assigns change after the component is mounted
   def update(assigns, %{assigns: %{id: _id}} = socket) do
     socket
-    |> assign(:disabled, assigns[:disabled])
-    |> assign(:placeholder, assigns[:placeholder] || "Search")
-    |> assign(:search, "")
+    |> assign(:disabled, Map.get(assigns, :disabled, false))
+    |> assign(:placeholder, Map.get(assigns, :placeholder, "Search"))
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
     |> sort_and_filter()
@@ -137,13 +136,13 @@ defmodule SearchableSelect do
     |> assign(:id_key, assigns[:id_key] || :id)
     |> assign(:id, assigns.id)
     |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
-    |> assign(:limit, assigns[:limit] || 100)
+    |> assign(:limit, Map.get(assigns, :limit, 100))
     |> assign(:limit_hit?, false)
     |> assign(:limit_hit_text, Map.get(assigns, :limit_hit_text, @default_limit_hit_text))
     |> assign(:multiple, assigns[:multiple] || false)
     |> assign(:no_matching_options_text, assigns[:no_matching_options_text])
     |> assign(:parent_key, assigns[:parent_key])
-    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(:placeholder, Map.get(assigns, :placeholder, "Search"))
     |> assign(:search, "")
     |> assign(:selected, assigns[:selected] || [])
     |> assign(:send_change_events, assigns[:send_change_events] || false)
@@ -161,20 +160,26 @@ defmodule SearchableSelect do
   def handle_event("pop", %{"key" => key}, %{assigns: assigns} = socket) do
     %{options: options, selected: selected} = assigns
 
-    {selected, val} =
-      Enum.reduce(selected, {[], nil}, fn
-        {^key, val}, {acc, nil} -> {acc, val}
-        other_selection, {acc, acc_val} -> {[other_selection | acc], acc_val}
-      end)
+    case Enum.find(selected, fn {selected_key, _} -> selected_key == key end) do
+      nil ->
+        {:noreply, socket}
 
-    options = :gb_trees.insert(key, val, options)
+      {^key, val} ->
+        {selected, val} =
+          Enum.reduce(selected, {[], nil}, fn
+            {^key, _}, {acc, nil} -> {acc, val}
+            other_selection, {acc, acc_val} -> {[other_selection | acc], acc_val}
+          end)
 
-    socket
-    |> assign(:options, options)
-    |> assign(:selected, Enum.reverse(selected))
-    |> update_parent_view()
-    |> sort_and_filter()
-    |> then(&{:noreply, &1})
+        options = :gb_trees.insert(key, val, options)
+
+        socket
+        |> assign(:options, options)
+        |> assign(:selected, Enum.reverse(selected))
+        |> update_parent_view()
+        |> sort_and_filter()
+        |> then(&{:noreply, &1})
+    end
   end
 
   def handle_event("search", %{"value" => search} = params, socket) do
@@ -193,12 +198,18 @@ defmodule SearchableSelect do
 
   def handle_event("select", %{"key" => key}, %{assigns: %{dropdown: true} = assigns} = socket) do
     %{options: options, parent_key: parent_key} = assigns
-    val = :gb_trees.get(key, options)
-    send(self(), {:select, parent_key, val})
 
-    socket
-    |> assign(:search, "")
-    |> then(&{:noreply, &1})
+    case :gb_trees.lookup(key, options) do
+      :none ->
+        {:noreply, socket}
+
+      {:value, val} ->
+        send(self(), {:select, parent_key, val})
+
+        socket
+        |> assign(:search, "")
+        |> then(&{:noreply, &1})
+    end
   end
 
   def handle_event("select", %{"key" => key}, %{assigns: assigns} = socket) do
@@ -237,6 +248,8 @@ defmodule SearchableSelect do
       class="my-auto h-4 w-4 fill-current"
       id={get_pop_cross_id(@component_id, elem(@selected, 1), @id_key)}
       role="button"
+      aria-label="Remove selection"
+      tabindex="0"
       viewBox="0 0 20 20"
       phx-click="pop"
       phx-value-key={elem(@selected, 0)}
@@ -264,15 +277,21 @@ defmodule SearchableSelect do
 
   # TODO: transition animations
   def hide_dropdown(id, js \\ %JS{}) do
-    JS.hide(js, to: "##{id}-dropdown")
+    js
+    |> JS.hide(to: "##{id}-dropdown")
+    |> JS.set_attribute({"aria-expanded", "false"}, to: "##{id}-search")
   end
 
   def show_dropdown(js, id) do
-    JS.show(js, to: "##{id}-dropdown")
+    js
+    |> JS.show(to: "##{id}-dropdown")
+    |> JS.set_attribute({"aria-expanded", "true"}, to: "##{id}-search")
   end
 
   def toggle_dropdown(id) do
-    JS.toggle(%JS{}, to: "##{id}-dropdown")
+    %JS{}
+    |> JS.toggle(to: "##{id}-dropdown")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "##{id}-search")
   end
 
   def selection_action(key, target, id, multiple) do

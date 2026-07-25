@@ -2,6 +2,8 @@
 
 Searchable multi/single select made for LiveView. Requires Tailwind to be set up in your project.
 
+Requires Elixir 1.15+ and Phoenix LiveView 1.2+.
+
 # Implementation
 
 ## Tailwind config
@@ -28,13 +30,24 @@ Hooks.SearchableSelect = SearchableSelect
 
 # Usage
 
+Render the stateful component from a LiveView or another LiveComponent:
+
+```heex
+<.live_component
+  id="customer-select"
+  module={SearchableSelect}
+  options={@customers}
+  parent_key="customer"
+/>
+```
+
 If you want to make the searchable select more integrated with your form and don't care about getting the whole struct (e.g. you have options like `[%{id: 1, name: "ABC", value: 25}]` and only want `25`) you can use SearchableSelect like this:
 ```
-    <.input_group
+    <.live_component
+      id="your-select"
+      module={SearchableSelect}
       form={f}
-      label="Your label"
       field={:your_field}
-      type={:searchable_select}
       options={@options}
     />
 ```
