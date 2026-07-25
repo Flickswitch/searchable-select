@@ -19,11 +19,20 @@ defmodule SearchableSelect.SearchableSelectTest do
     Enum.each(1..4, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
   end
 
-  test "renders combobox and listbox accessibility attributes", %{live: live} do
-    assert has_element?(live, "#single-search[role=combobox]")
+  test "renders accessible dropdown controls", %{live: live} do
+    assert has_element?(live, "#single-search[aria-haspopup=listbox]")
     assert has_element?(live, "#single-search[aria-controls=single-dropdown]")
-    assert has_element?(live, "#single-dropdown[role=listbox]")
-    assert has_element?(live, "#single-option-1[role=option]")
+    assert has_element?(live, "#single-option-1[type=button]")
+    assert has_element?(live, "#single-caret[type=button]")
+  end
+
+  test "ignores stale select events" do
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{options: :gb_trees.empty(), selected: [], multiple: false}
+    }
+
+    assert {:noreply, ^socket} =
+             SearchableSelect.handle_event("select", %{"key" => "missing"}, socket)
   end
 
   test "search filters items in dropdown", %{live: live} do

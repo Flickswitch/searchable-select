@@ -1,20 +1,24 @@
-<div id={"#{@id}-root"} class={"flex flex-col w-full items-center relative #{@class} #{if @disabled, do: "cursor-not-allowed", else: ""}"}>
+<div
+  id={"#{@id}-root"}
+  class={"flex flex-col w-full items-center relative #{@class} #{if @disabled, do: "cursor-not-allowed", else: ""}"}
+>
   <div class={"p-1 flex border border-base-300 bg-base-100 rounded w-full #{if @disabled, do: "pointer-events-none bg-base-200 border-base-300 text-base-content/40", else: ""}"}>
     <div class="flex flex-auto flex-wrap align-middle items-center">
       <%= if @multiple do %>
         <%!-- selection pills --%>
-        <%= for {_, selected_val} = selected <- @selected do %>
-          <div class="flex justify-center items-center m-1 font-medium py-1 px-1 bg-base-200 rounded border">
-            <div class="text-xs font-normal max-w-full flex-initial">
-              <%= @label_callback.(selected_val) %>
-            </div>
-            <.pop_cross component_id={@id} id_key={@id_key} selected={selected} target={@myself} />
+        <div
+          :for={{_, selected_val} = selected <- @selected}
+          class="flex justify-center items-center m-1 font-medium py-1 px-1 bg-base-200 rounded border"
+        >
+          <div class="text-xs font-normal max-w-full flex-initial">
+            {@label_callback.(selected_val)}
           </div>
-        <% end %>
+          <.pop_cross component_id={@id} id_key={@id_key} selected={selected} target={@myself} />
+        </div>
       <% else %>
-        <%= unless @selected == [] do %>
+        <%= if @selected != [] do %>
           <span class="px-2">
-            <%= @label_callback.(elem(hd(@selected), 1)) %>
+            {@label_callback.(elem(hd(@selected), 1))}
           </span>
         <% end %>
       <% end %>
@@ -25,10 +29,9 @@
           class="bg-transparent py-[0.2rem] px-2 appearance-none outline-none h-full w-full text-base-content text-ellipsis border-none ring-transparent"
           {if @disabled, do: [disabled: ""], else: []}
           id={"#{@id}-search"}
-          role="combobox"
+          aria-haspopup="listbox"
           aria-controls={"#{@id}-dropdown"}
           aria-expanded="false"
-          aria-autocomplete="list"
           phx-click={show_dropdown(%JS{}, @id)}
           phx-keyup={JS.push("search", target: @myself) |> show_dropdown(@id)}
           phx-target={@myself}
@@ -39,29 +42,37 @@
 
     <%= if @form do %>
       <input id={get_hook_id(@id)} type="hidden" phx-hook="SearchableSelect" />
-      <%= for {_, selected_val} <- @selected do %>
-        <.hidden_form_input
-          {assigns_to_attributes(Map.take(assigns, [:form, :field, :multiple, :value_callback]))}
-          selected_val={selected_val}
-        />
-      <% end %>
+      <.hidden_form_input
+        :for={{_, selected_val} <- @selected}
+        form={@form}
+        field={@field}
+        multiple={@multiple}
+        value_callback={@value_callback}
+        selected_val={selected_val}
+      />
     <% end %>
 
-    <%= unless @multiple or @selected == [] do %>
-      <.pop_cross component_id={@id} id_key={@id_key} selected={List.first(@selected)} target={@myself} />
+    <%= if !@multiple and @selected != [] do %>
+      <.pop_cross
+        component_id={@id}
+        id_key={@id_key}
+        selected={List.first(@selected)}
+        target={@myself}
+      />
     <% end %>
     <%!-- dropdown caret --%>
     <div class="text-base-content/30 w-8 py-1 pl-2 pr-1 flex items-center">
-      <svg
-        version="1.1"
+      <button
+        type="button"
         id={"#{@id}-caret"}
         phx-click={toggle_dropdown(@id)}
         class="fill-current h-4 w-4 my-auto text-base-content"
-        role="button"
-        viewBox="0 0 20 20"
+        aria-label="Toggle options"
       >
-        <path d="M17.418,6.109c0.272-0.268,0.709-0.268,0.979,0s0.271,0.701,0,0.969l-7.908,7.83 c-0.27,0.268-0.707,0.268-0.979,0l-7.908-7.83c-0.27-0.268-0.27-0.701,0-0.969c0.271-0.268,0.709-0.268,0.979,0L10,13.25 L17.418,6.109z" />
-      </svg>
+        <svg aria-hidden="true" viewBox="0 0 20 20">
+          <path d="M17.418,6.109c0.272-0.268,0.709-0.268,0.979,0s0.271,0.701,0,0.969l-7.908,7.83 c-0.27,0.268-0.707,0.268-0.979,0l-7.908-7.83c-0.27-0.268-0.27-0.701,0-0.969c0.271-0.268,0.709-0.268,0.979,0L10,13.25 L17.418,6.109z" />
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -69,7 +80,6 @@
     <div
       class="absolute border-x border-b border-base-300 bg-base-100 z-40 w-full left-0 rounded-b hidden"
       id={"#{@id}-dropdown"}
-      role="listbox"
       phx-click-away={hide_dropdown(@id)}
       phx-window-keydown={hide_dropdown(@id)}
       phx-key="escape"
@@ -79,31 +89,45 @@
         <%= if Enum.any?(@visible_options) do %>
           <%= if !is_nil(@grouper) do %>
             <%= for group <- @grouper.groups do %>
-              <% matching_options = Enum.filter(@visible_options, &@grouper.group_by_fn.(&1, group)) %>
+              <% matching_options =
+                Enum.filter(@visible_options, &@grouper.group_by_fn.(&1, group)) %>
               <%= if Enum.any?(matching_options) do %>
-                <div class="text-xs font-semibold uppercase tracking-wide text-base-content/40 px-2 pt-2 pb-1"><%= group.name %></div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-base-content/40 px-2 pt-2 pb-1">
+                  {group.name}
+                </div>
                 <%= for {option_key, option_val} <- matching_options do %>
-                  <button type="button" class="overflow-none shrink-0 block w-full text-left" id={get_option_id(@id, option_val, @id_key)} role="option" aria-selected="false" phx-click={selection_action(option_key, @myself, @id, @multiple)}>
-                    <div class="cursor-pointer text-sm text-base-content hover:bg-primary-400 hover:text-white m-1 p-2 rounded">
-                      <%= @label_callback.(option_val) %>
-                    </div>
+                  <button
+                    type="button"
+                    class="overflow-none shrink-0 block w-full text-left cursor-pointer text-sm text-base-content hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
+                    id={get_option_id(@id, option_val, @id_key)}
+                    phx-click={selection_action(option_key, @myself, @id, @multiple)}
+                  >
+                    {@label_callback.(option_val)}
                   </button>
                 <% end %>
               <% end %>
             <% end %>
           <% else %>
             <%= for {option_key, option_val} <- @visible_options do %>
-              <button type="button" class="overflow-none shrink-0 block w-full text-left" id={get_option_id(@id, option_val, @id_key)} role="option" aria-selected="false" phx-click={selection_action(option_key, @myself, @id, @multiple)}>
-                <div class="cursor-pointer flex items-center justify-between hover:bg-primary-400 hover:text-white m-1 p-2 rounded">
-                  <%= @label_callback.(option_val) %>
-                </div>
+              <button
+                type="button"
+                class="overflow-none shrink-0 block w-full text-left cursor-pointer flex items-center justify-between hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
+                id={get_option_id(@id, option_val, @id_key)}
+                phx-click={selection_action(option_key, @myself, @id, @multiple)}
+              >
+                {@label_callback.(option_val)}
               </button>
             <% end %>
           <% end %>
           <%= if @limit_hit? && @limit_hit_text do %>
-            <div class="overflow-none shrink-0" id={"#{@id}-remove-limit-option"} phx-click="remove_limit" phx-target={@myself}>
+            <div
+              class="overflow-none shrink-0"
+              id={"#{@id}-remove-limit-option"}
+              phx-click="remove_limit"
+              phx-target={@myself}
+            >
               <div class="cursor-pointer flex items-center justify-between hover:bg-primary-400 hover:text-white m-1 p-2 rounded">
-                <strong><%= @limit_hit_text %></strong>
+                <strong>{@limit_hit_text}</strong>
               </div>
             </div>
           <% end %>
@@ -111,11 +135,11 @@
           <div class="w-full border-base-300 border-b">
             <div class="flex w-full items-center p-2 pl-2 border-transparent border-l-2 relative">
               <div class="w-full items-center flex justify-between">
-                <%= if String.trim(@search) == "" do
+                {if String.trim(@search) == "" do
                   "No more options."
                 else
                   @no_matching_options_text || "Sorry, no matching options."
-                end %>
+                end}
               </div>
             </div>
           </div>

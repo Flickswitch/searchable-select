@@ -105,17 +105,48 @@ defmodule SearchableSelect do
   alias Phoenix.HTML.Form
   alias Phoenix.LiveView.JS
 
-  @impl true
-  def mount(socket) do
-    {:ok, socket}
+  attr(:id, :string, required: true)
+  attr(:options, :list, required: true)
+  attr(:class, :string, default: "")
+  attr(:disabled, :boolean, default: false)
+  attr(:dropdown, :boolean, default: false)
+  attr(:field, :atom, default: nil)
+  attr(:form, :any, default: nil)
+  attr(:grouper, :any, default: nil)
+  attr(:id_key, :atom, default: :id)
+  attr(:label_callback, :any, default: nil)
+  attr(:limit, :integer, default: 100)
+
+  attr(:limit_hit_text, :string,
+    default: "(Limited results shown; refine search, or click to display all)"
+  )
+
+  attr(:multiple, :boolean, default: false)
+  attr(:no_matching_options_text, :string, default: nil)
+  attr(:parent_key, :any, default: nil)
+  attr(:placeholder, :string, default: "Search")
+  attr(:preselected_id, :any, default: nil)
+  attr(:preselected_ids, :list, default: [])
+  attr(:selected, :list, default: [])
+  attr(:send_change_events, :boolean, default: false)
+  attr(:send_search_events, :boolean, default: false)
+  attr(:sort_callback, :any, default: nil)
+  attr(:sort_mapping_callback, :any, default: nil)
+  attr(:value_callback, :any, default: nil)
+
+  def searchable_select(assigns) do
+    ~H"""
+    <.live_component module={__MODULE__} {assigns} />
+    """
   end
 
   @impl true
   # this is when assigns change after the component is mounted
   def update(assigns, %{assigns: %{id: _id}} = socket) do
     socket
-    |> assign(:disabled, Map.get(assigns, :disabled, false))
-    |> assign(:placeholder, Map.get(assigns, :placeholder, "Search"))
+    |> assign(:disabled, assigns[:disabled])
+    |> assign(:placeholder, assigns[:placeholder] || "Search")
+    |> assign(:search, "")
     |> then(&pre_select(&1, Map.merge(&1.assigns, assigns)))
     |> prep_options(assigns)
     |> sort_and_filter()
@@ -136,13 +167,13 @@ defmodule SearchableSelect do
     |> assign(:id_key, assigns[:id_key] || :id)
     |> assign(:id, assigns.id)
     |> assign(:label_callback, assigns[:label_callback] || fn item -> item.name end)
-    |> assign(:limit, Map.get(assigns, :limit, 100))
+    |> assign(:limit, assigns[:limit] || 100)
     |> assign(:limit_hit?, false)
     |> assign(:limit_hit_text, Map.get(assigns, :limit_hit_text, @default_limit_hit_text))
     |> assign(:multiple, assigns[:multiple] || false)
     |> assign(:no_matching_options_text, assigns[:no_matching_options_text])
     |> assign(:parent_key, assigns[:parent_key])
-    |> assign(:placeholder, Map.get(assigns, :placeholder, "Search"))
+    |> assign(:placeholder, assigns[:placeholder] || "Search")
     |> assign(:search, "")
     |> assign(:selected, assigns[:selected] || [])
     |> assign(:send_change_events, assigns[:send_change_events] || false)
@@ -160,22 +191,16 @@ defmodule SearchableSelect do
   def handle_event("pop", %{"key" => key}, %{assigns: assigns} = socket) do
     %{options: options, selected: selected} = assigns
 
-    case Enum.find(selected, fn {selected_key, _} -> selected_key == key end) do
+    case List.keyfind(selected, key, 0) do
       nil ->
         {:noreply, socket}
 
       {^key, val} ->
-        {selected, val} =
-          Enum.reduce(selected, {[], nil}, fn
-            {^key, _}, {acc, nil} -> {acc, val}
-            other_selection, {acc, acc_val} -> {[other_selection | acc], acc_val}
-          end)
-
         options = :gb_trees.insert(key, val, options)
 
         socket
         |> assign(:options, options)
-        |> assign(:selected, Enum.reverse(selected))
+        |> assign(:selected, List.keydelete(selected, key, 0))
         |> update_parent_view()
         |> sort_and_filter()
         |> then(&{:noreply, &1})
@@ -214,25 +239,30 @@ defmodule SearchableSelect do
 
   def handle_event("select", %{"key" => key}, %{assigns: assigns} = socket) do
     %{options: options, selected: selected} = assigns
-    {val, options} = :gb_trees.take(key, options)
 
-    {options, selected} =
-      if !assigns.multiple and length(selected) == 1 do
-        [{old_key, old_val}] = selected
-        {:gb_trees.insert(old_key, old_val, options), []}
-      else
-        {options, selected}
-      end
+    case :gb_trees.take_any(key, options) do
+      :error ->
+        {:noreply, socket}
 
-    selected = selected ++ [{key, val}]
+      {val, options} ->
+        {options, selected} =
+          if !assigns.multiple and length(selected) == 1 do
+            [{old_key, old_val}] = selected
+            {:gb_trees.insert(old_key, old_val, options), []}
+          else
+            {options, selected}
+          end
 
-    socket
-    |> assign(:options, options)
-    |> assign(:selected, selected)
-    |> assign(:search, "")
-    |> sort_and_filter()
-    |> update_parent_view()
-    |> then(&{:noreply, &1})
+        selected = selected ++ [{key, val}]
+
+        socket
+        |> assign(:options, options)
+        |> assign(:selected, selected)
+        |> assign(:search, "")
+        |> sort_and_filter()
+        |> update_parent_view()
+        |> then(&{:noreply, &1})
+    end
   end
 
   def handle_event("remove_limit", _, socket) do
@@ -244,19 +274,19 @@ defmodule SearchableSelect do
 
   def pop_cross(assigns) do
     ~H"""
-    <svg
+    <button
+      type="button"
       class="my-auto h-4 w-4 fill-current"
       id={get_pop_cross_id(@component_id, elem(@selected, 1), @id_key)}
-      role="button"
       aria-label="Remove selection"
-      tabindex="0"
-      viewBox="0 0 20 20"
       phx-click="pop"
       phx-value-key={elem(@selected, 0)}
       phx-target={@target}
     >
-      <path d="M14.348,14.849c-0.469,0.469-1.229,0.469-1.697,0L10,11.819l-2.651,3.029c-0.469,0.469-1.229,0.469-1.697,0 c-0.469-0.469-0.469-1.229,0-1.697l2.758-3.15L5.651,6.849c-0.469-0.469-0.469-1.228,0-1.697s1.228-0.469,1.697,0L10,8.183 l2.651-3.031c0.469-0.469,1.228-0.469,1.697,0s0.469,1.229,0,1.697l-2.758,3.152l2.758,3.15 C14.817,13.62,14.817,14.38,14.348,14.849z" />
-    </svg>
+      <svg aria-hidden="true" viewBox="0 0 20 20">
+        <path d="M14.348,14.849c-0.469,0.469-1.229,0.469-1.697,0L10,11.819l-2.651,3.029c-0.469,0.469-1.229,0.469-1.697,0 c-0.469-0.469-0.469-1.229,0-1.697l2.758-3.15L5.651,6.849c-0.469-0.469-0.469-1.228,0-1.697s1.228-0.469,1.697,0L10,8.183 l2.651-3.031c0.469-0.469,1.228-0.469,1.697,0s0.469,1.229,0,1.697l-2.758,3.152l2.758,3.15 C14.817,13.62,14.817,14.38,14.348,14.849z" />
+      </svg>
+    </button>
     """
   end
 
@@ -275,7 +305,6 @@ defmodule SearchableSelect do
     end
   end
 
-  # TODO: transition animations
   def hide_dropdown(id, js \\ %JS{}) do
     js
     |> JS.hide(to: "##{id}-dropdown")

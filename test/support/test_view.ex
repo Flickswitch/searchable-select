@@ -109,8 +109,8 @@ defmodule SearchableSelect.TestView do
       options={@options}
       parent_key="selected_options"
     />
-    <span id="selected-options"><%= get_selected_id_list(@selected_options) %></span>
-    <.form for={%{}} :let={f} as={:test}>
+    <span id="selected-options">{get_selected_id_list(@selected_options)}</span>
+    <.form :let={f} for={%{}} as={:test}>
       <.live_component
         field={:single_select}
         form={f}
@@ -157,10 +157,9 @@ defmodule SearchableSelect.TestView do
       options={@options}
       parent_key="selected_options"
       preselected_ids={[98, 99]}
-    />
-
-    last_search_message_params: <p id="last_search_message_params_p">
-      <%= inspect(@last_search_message_params) %>
+    /> last_search_message_params:
+    <p id="last_search_message_params_p">
+      {inspect(@last_search_message_params)}
     </p>
     """
   end
