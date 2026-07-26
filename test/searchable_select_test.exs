@@ -264,6 +264,53 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#multi_invalid_preselect-option-4")
   end
 
+  test "label_callback drives labels, selection pills and the search key", %{live: live} do
+    assert live |> element("#custom_label-option-4") |> render() =~ "Lmao #4"
+
+    # matches the custom label, not the default one - "lmao 4" would not contain it
+    live |> element("#custom_label-search") |> render_keyup(%{"value" => "lmao#4"})
+    assert has_element?(live, "#custom_label-option-4")
+    refute has_element?(live, "#custom_label-option-1")
+
+    live |> element("#custom_label-option-4") |> render_click()
+    assert live |> element("#custom_label-root") |> render() =~ "Lmao #4"
+  end
+
+  test "sort_callback and sort_mapping_callback order the visible options", %{live: live} do
+    assert option_ids(live, "sorted") == ["4", "3", "7", "5", "6", "2", "1"]
+  end
+
+  test "grouper groups the visible options under their headers", %{live: live} do
+    html = live |> element("#grouped-dropdown") |> render()
+
+    assert html =~ "Odd"
+    assert html =~ "Even"
+    assert option_ids(live, "grouped") == ["1", "5", "3", "7", "2", "6", "4"]
+  end
+
+  test "grouper hides a group with no matching options", %{live: live} do
+    live |> element("#grouped-search") |> render_keyup(%{"value" => "ayy"})
+    html = live |> element("#grouped-dropdown") |> render()
+
+    assert html =~ "Odd"
+    refute html =~ "Even"
+    assert option_ids(live, "grouped") == ["1"]
+  end
+
+  test "value_callback drives the hidden form input value", %{live: live} do
+    live |> element("#custom_value_form-option-1") |> render_click()
+
+    assert has_element?(live, "#test_custom_value[value=Ayy]")
+  end
+
+  defp option_ids(live, component_id) do
+    live
+    |> element("##{component_id}-dropdown")
+    |> render()
+    |> then(&Regex.scan(~r/id="#{component_id}-option-(\d+)"/, &1, capture: :all_but_first))
+    |> List.flatten()
+  end
+
   defp load_test_view(_) do
     {:ok, live, _html} = live_isolated(conn(:get, "/"), SearchableSelect.TestView)
     %{live: live}
