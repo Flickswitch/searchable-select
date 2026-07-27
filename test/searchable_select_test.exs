@@ -284,8 +284,18 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert live |> element("#custom_label-root") |> render() =~ "Lmao #4"
   end
 
-  test "sort_callback and sort_mapping_callback order the visible options", %{live: live} do
+  test "sort_by orders the visible options", %{live: live} do
     assert option_ids(live, "sorted") == ["4", "3", "7", "5", "6", "2", "1"]
+  end
+
+  test "sort_by given a bare mapper sorts ascending", %{live: live} do
+    assert option_ids(live, "sorted_asc") == ["1", "2", "6", "5", "3", "7", "4"]
+  end
+
+  test "preselected matches ids that are not integers", %{live: live} do
+    assert has_element?(live, "#string_id_preselect-pop-cross-a3f9-uuid")
+    refute has_element?(live, "#string_id_preselect-option-a3f9-uuid")
+    assert has_element?(live, "#string_id_preselect-option-b7c2")
   end
 
   test "grouper groups the visible options under their headers", %{live: live} do
