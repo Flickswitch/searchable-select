@@ -16,7 +16,7 @@ defmodule SearchableSelect.MixProject do
 
   defp package do
     [
-      licenses: ["Apache-2.0"],
+      licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/Flickswitch/searchable-select"},
       files: ~w(lib mix.exs README.md LICENSE)
     ]
