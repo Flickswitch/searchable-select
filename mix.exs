@@ -8,7 +8,17 @@ defmodule SearchableSelect.MixProject do
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      description: "Searchable multi/single select made for LiveView.",
+      package: package()
+    ]
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/Flickswitch/searchable-select"},
+      files: ~w(lib mix.exs README.md LICENSE)
     ]
   end
 

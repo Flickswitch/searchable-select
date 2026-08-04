@@ -4,6 +4,18 @@ Searchable multi/single select made for LiveView. Requires Tailwind to be set up
 
 # Implementation
 
+## Installation
+Published to the private `flickswitch` Hex repo. Add the repo once per machine
+(reads are open, no auth token needed):
+```sh
+curl -sS https://hex.flickswitch.cloud/repos/flickswitch/public_key -o /tmp/flickswitch_hex_public_key.pem
+mix hex.repo add flickswitch https://hex.flickswitch.cloud/repos/flickswitch --public-key /tmp/flickswitch_hex_public_key.pem
+```
+then in mix.exs:
+```elixir
+{:searchable_select, "~> 0.1.0", repo: "flickswitch"}
+```
+
 ## Tailwind config
 in tailwind.config.js add "../deps/searchable_select/lib/*.*ex", to the module.exports
 ```js
