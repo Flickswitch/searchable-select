@@ -398,6 +398,10 @@ defmodule SearchableSelect do
 
   defp pre_select(socket, %{preselected_id: nil, preselected_ids: []}), do: socket
 
+  defp pre_select(socket, %{preselected_id: "", multiple: false}) do
+    assign(socket, :selected, [])
+  end
+
   defp pre_select(socket, %{options: options, preselected_id: preselected_id, multiple: false}) do
     preselected_id =
       if is_binary(preselected_id) do
