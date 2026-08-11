@@ -34,13 +34,19 @@
     </div>
 
     <%= if @form do %>
-      <input id={get_hook_id(@id)} type="hidden" phx-hook="SearchableSelect" />
-      <%= for {_, selected_val} <- @selected do %>
-        <.hidden_form_input
-          {assigns_to_attributes(Map.take(assigns, [:form, :field, :multiple, :value_callback]))}
-          selected_val={selected_val}
-        />
-      <% end %>
+      <select
+        id={get_hook_id(@id)}
+        name={Form.input_name(@form, @field) <> if @multiple, do: "[]", else: ""}
+        multiple={@multiple}
+        phx-hook="SearchableSelect"
+        tabindex="-1"
+        aria-hidden="true"
+        class="pointer-events-none absolute h-px w-px opacity-0"
+      >
+        <option :if={@selected == []} value="" selected></option>
+        <option :for={{_, selected_val} <- @selected} value={@value_callback.(selected_val)} selected>
+        </option>
+      </select>
     <% end %>
 
     <%= unless @multiple or @selected == [] do %>

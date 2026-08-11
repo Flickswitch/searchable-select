@@ -103,6 +103,7 @@ defmodule SearchableSelect do
   """
   use Phoenix.LiveComponent
   alias Phoenix.HTML.Form
+  alias Phoenix.HTML.FormField
   alias Phoenix.LiveView.JS
 
   @impl true
@@ -111,6 +112,13 @@ defmodule SearchableSelect do
   end
 
   @impl true
+  def update(%{field: %FormField{} = field} = assigns, socket) do
+    assigns
+    |> Map.put(:field, field.field)
+    |> Map.put(:form, field.form)
+    |> update(socket)
+  end
+
   # this is when assigns change after the component is mounted
   def update(assigns, %{assigns: %{id: _id}} = socket) do
     socket
@@ -380,19 +388,6 @@ defmodule SearchableSelect do
   def update_parent_view(%{assigns: %{parent_key: parent_key, selected: [{_, val}]}} = socket) do
     send(self(), {:select, parent_key, val})
     socket
-  end
-
-  def hidden_form_input(%{selected_val: selected_val, value_callback: value_callback} = assigns) do
-    assigns = assign(assigns, :value, value_callback.(selected_val))
-
-    ~H"""
-    <input
-      id={if @multiple, do: Form.input_id(@form, @field, @value), else: Form.input_id(@form, @field)}
-      name={Form.input_name(@form, @field) <> if @multiple, do: "[]", else: ""}
-      type="hidden"
-      value={@value}
-    />
-    """
   end
 
   defp get_hook_id(id), do: id <> "-form-hook"

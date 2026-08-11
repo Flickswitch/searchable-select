@@ -141,49 +141,53 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#single-option-2")
   end
 
-  test "form mode pushes event and creates hidden inputs when changing single select", %{
+  test "form mode pushes event and updates single select control", %{
     live: live
   } do
     hook_id = "single_form-form-hook"
-    assert has_element?(live, "##{hook_id}")
+    assert has_element?(live, "select##{hook_id}[name='test[single_select]'] option[value='']")
 
     live |> element("#single_form-option-1") |> render_click()
 
-    assert has_element?(live, "#test_single_select[value=1]")
+    refute has_element?(live, "select##{hook_id} option[value='']")
+    assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-option-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=1]")
-    assert has_element?(live, "#test_single_select[value=2]")
+    refute has_element?(live, "select##{hook_id} option[value='1']")
+    assert has_element?(live, "select##{hook_id} option[value='2'][selected]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-pop-cross-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=2]")
+    refute has_element?(live, "select##{hook_id} option[value='2']")
+    assert has_element?(live, "select##{hook_id} option[value=''][selected]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
-  test "form mode pushes event and creates hidden inputs when changing multi select", %{
+  test "form mode pushes event and updates multi select control", %{
     live: live
   } do
     hook_id = "multi_form-form-hook"
-    assert has_element?(live, "##{hook_id}")
+    assert has_element?(live, "select##{hook_id}[name='test[multi_select][]'] option[value='']")
 
     live |> element("#multi_form-option-1") |> render_click()
 
-    assert has_element?(live, "#test_multi_select_1[name=\"test[multi_select][]\"]")
+    refute has_element?(live, "select##{hook_id} option[value='']")
+    assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#multi_form-option-2") |> render_click()
 
-    assert has_element?(live, "#test_multi_select_1[name=\"test[multi_select][]\"]")
-    assert has_element?(live, "#test_multi_select_2[name=\"test[multi_select][]\"]")
+    assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
+    assert has_element?(live, "select##{hook_id} option[value='2'][selected]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#multi_form-pop-cross-2") |> render_click()
 
-    refute has_element?(live, "#test_multi_select_2[name=\"test[multi_select][]\"]")
+    refute has_element?(live, "select##{hook_id} option[value='2']")
+    assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
