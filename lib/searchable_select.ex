@@ -455,12 +455,13 @@ defmodule SearchableSelect do
 
   defp pre_select(socket, _assigns), do: socket
 
-  defp select_options_matching_values(socket, %{options: options} = assigns, values) do
+  defp select_options_matching_values(socket, %{options: options}, values) do
+    %{label_callback: label_callback, value_callback: value_callback} = socket.assigns
     values = Enum.map(values, &to_string/1)
 
     selected =
-      for option <- options, to_string(assigns.value_callback.(option)) in values do
-        {unique_normalised_key(option, assigns.label_callback), option}
+      for option <- options, to_string(value_callback.(option)) in values do
+        {unique_normalised_key(option, label_callback), option}
       end
 
     assign(socket, :selected, selected)
