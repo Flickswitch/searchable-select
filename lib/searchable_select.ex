@@ -88,7 +88,8 @@ defmodule SearchableSelect do
 
   - send_change_events
     If set, this Component sends a `{:select, key, selected}` message
-    whenever there is a change in the selected items. Defaults to false.
+    whenever there is a change in the selected items. Single selects send the
+    selected item or `nil`; multiple selects send a list. Defaults to false.
 
   - send_search_events
     If set, this Component sends a `{:search, key, search_string}` message
@@ -365,31 +366,26 @@ defmodule SearchableSelect do
   def filter(:none, acc, _search), do: Enum.reverse(acc)
 
   def update_parent_view(%{assigns: %{form: form} = assigns} = socket) when form != nil do
-    %{id: id, send_change_events: send_change_events, parent_key: parent_key, selected: selected} =
-      assigns
+    %{id: id, send_change_events: send_change_events, parent_key: parent_key} = assigns
 
     if send_change_events do
-      send(self(), {:select, parent_key, Enum.map(selected, fn {_key, val} -> val end)})
+      send(self(), {:select, parent_key, selected_value(assigns)})
     end
 
     push_event(socket, "searchable_select", %{id: get_hook_id(id)})
   end
 
-  def update_parent_view(%{assigns: %{multiple: true} = assigns} = socket) do
-    %{parent_key: parent_key, selected: selected} = assigns
-    send(self(), {:select, parent_key, Enum.map(selected, fn {_key, val} -> val end)})
+  def update_parent_view(%{assigns: assigns} = socket) do
+    send(self(), {:select, assigns.parent_key, selected_value(assigns)})
     socket
   end
 
-  def update_parent_view(%{assigns: %{parent_key: parent_key, selected: []}} = socket) do
-    send(self(), {:select, parent_key, nil})
-    socket
+  defp selected_value(%{multiple: true, selected: selected}) do
+    Enum.map(selected, fn {_key, value} -> value end)
   end
 
-  def update_parent_view(%{assigns: %{parent_key: parent_key, selected: [{_, val}]}} = socket) do
-    send(self(), {:select, parent_key, val})
-    socket
-  end
+  defp selected_value(%{selected: []}), do: nil
+  defp selected_value(%{selected: [{_, value}]}), do: value
 
   defp get_hook_id(id), do: id <> "-form-hook"
 

@@ -152,18 +152,21 @@ defmodule SearchableSelect.SearchableSelectTest do
     refute has_element?(live, "select##{hook_id} option[value='']")
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
+    assert has_element?(live, "#selected-options", "1")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-option-2") |> render_click()
 
     assert has_element?(live, "select##{hook_id} option[value='1']:not([selected])")
     assert has_element?(live, "select##{hook_id} option[value='2'][selected]")
+    assert has_element?(live, "#selected-options", "2")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-pop-cross-2") |> render_click()
 
     assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
     assert has_element?(live, "select##{hook_id} option[value=''][selected]")
+    assert has_element?(live, "#selected-options", "nil")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
@@ -178,18 +181,21 @@ defmodule SearchableSelect.SearchableSelectTest do
     refute has_element?(live, "select##{hook_id} option[value='']")
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
+    assert has_element?(live, "#selected-options", "[1]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#multi_form-option-2") |> render_click()
 
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert has_element?(live, "select##{hook_id} option[value='2'][selected]")
+    assert has_element?(live, "#selected-options", "[1, 2]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#multi_form-pop-cross-2") |> render_click()
 
     assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
+    assert has_element?(live, "#selected-options", "[1]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
