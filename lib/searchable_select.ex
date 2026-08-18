@@ -5,8 +5,8 @@ defmodule SearchableSelect do
   Your view will need to implement a callback like this:
   `handle_info({:select, parent_key, selected}, socket)`
 
-  Alternatively you can use it as part of a normal Phoenix HTML form by setting form and field
-  assigns, and an optional callback for getting the value of each struct.
+  Alternatively you can use it as part of a normal Phoenix HTML form by assigning a
+  `Phoenix.HTML.FormField` and an optional callback for getting the value of each struct.
 
   For multiple selects, selected will be a list of selected structs/maps
   For single selects, selected will be a struct/map
@@ -24,11 +24,12 @@ defmodule SearchableSelect do
     instead of a select - optional, defaults to `false`
 
   - field
-    Field name to use as part of form, required if form is set
+    `Phoenix.HTML.FormField` used to name and populate the select. A field name may be used with
+    the form assign for backwards compatibility.
 
   - form
-    Phoenix.HTML.Form, optional, if set will make searchable select return
-    values via a hidden input instead of handle_info
+    `Phoenix.HTML.Form`, optional. Required when field is a field name instead of a
+    `Phoenix.HTML.FormField`.
 
   - id
     Component id - required
@@ -82,7 +83,7 @@ defmodule SearchableSelect do
     options, defaults to [] (no pre-selection occurs).
 
   - value_callback
-    Function used to populate the hidden input when form is set. Defaults to
+    Function used to populate the select value when form is set. Defaults to
     `fn item -> item.id end`
 
   - send_change_events

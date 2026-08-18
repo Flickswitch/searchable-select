@@ -13,7 +13,7 @@ mix hex.repo add flickswitch https://hex.flickswitch.cloud/repos/flickswitch --p
 ```
 then in mix.exs:
 ```elixir
-{:searchable_select, "~> 0.1.0", repo: "flickswitch"}
+{:searchable_select, "~> 0.1.1", repo: "flickswitch"}
 ```
 
 ## Tailwind config
@@ -41,12 +41,11 @@ Hooks.SearchableSelect = SearchableSelect
 # Usage
 
 If you want to make the searchable select more integrated with your form and don't care about getting the whole struct (e.g. you have options like `[%{id: 1, name: "ABC", value: 25}]` and only want `25`) you can use SearchableSelect like this:
-```
-    <.input_group
-      form={f}
-      label="Your label"
-      field={:your_field}
-      type={:searchable_select}
+```heex
+    <.live_component
+      module={SearchableSelect}
+      id="your-field"
+      field={f[:your_field]}
       options={@options}
     />
 ```
