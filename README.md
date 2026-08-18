@@ -13,7 +13,7 @@ mix hex.repo add flickswitch https://hex.flickswitch.cloud/repos/flickswitch --p
 ```
 then in mix.exs:
 ```elixir
-{:searchable_select, "~> 0.1.1", repo: "flickswitch"}
+{:searchable_select, "~> 0.2.0", repo: "flickswitch"}
 ```
 
 ## Tailwind config

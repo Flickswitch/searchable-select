@@ -24,8 +24,9 @@ defmodule SearchableSelect do
     instead of a select - optional, defaults to `false`
 
   - field
-    `Phoenix.HTML.FormField` used to name and populate the select. A field name may be used with
-    the form assign for backwards compatibility.
+    `Phoenix.HTML.FormField` used to name and populate the select. When the field has a value,
+    the value initialises the selection; `preselected_id`/`preselected_ids` apply when the field
+    has no value. A field name may be used with the form assign for backwards compatibility.
 
   - form
     `Phoenix.HTML.Form`, optional. Required when field is a field name instead of a
@@ -118,6 +119,7 @@ defmodule SearchableSelect do
     assigns
     |> Map.put(:field, field.field)
     |> Map.put(:form, field.form)
+    |> put_field_value(field.value)
     |> update(socket)
   end
 
@@ -389,6 +391,26 @@ defmodule SearchableSelect do
 
   defp get_hook_id(id), do: id <> "-form-hook"
 
+  defp put_field_value(assigns, value) do
+    if primitive?(value) or (is_list(value) and Enum.all?(value, &primitive?/1)) do
+      Map.put(assigns, :field_value, value)
+    else
+      assigns
+    end
+  end
+
+  defp primitive?(value), do: is_binary(value) or is_number(value) or is_atom(value)
+
+  defp pre_select(socket, %{field_value: value, multiple: false} = assigns)
+       when value != nil and value != "" do
+    select_options_matching_values(socket, assigns, [value])
+  end
+
+  defp pre_select(socket, %{field_value: values, multiple: true} = assigns)
+       when is_list(values) and values != [] do
+    select_options_matching_values(socket, assigns, values)
+  end
+
   defp pre_select(socket, %{preselected_ids: [], multiple: true}) do
     assign(socket, :selected, [])
   end
@@ -432,6 +454,17 @@ defmodule SearchableSelect do
   end
 
   defp pre_select(socket, _assigns), do: socket
+
+  defp select_options_matching_values(socket, %{options: options} = assigns, values) do
+    values = Enum.map(values, &to_string/1)
+
+    selected =
+      for option <- options, to_string(assigns.value_callback.(option)) in values do
+        {unique_normalised_key(option, assigns.label_callback), option}
+      end
+
+    assign(socket, :selected, selected)
+  end
 
   defp normalise_string(string) do
     string

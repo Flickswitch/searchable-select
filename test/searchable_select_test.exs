@@ -145,27 +145,26 @@ defmodule SearchableSelect.SearchableSelectTest do
     live: live
   } do
     hook_id = "single_form-form-hook"
-    assert has_element?(live, "select##{hook_id}[name='test[single_select]'] option[value='']")
+    assert has_element?(live, "select##{hook_id}[name='test[single_select]']")
+    refute has_element?(live, "select##{hook_id} option")
 
     live |> element("#single_form-option-1") |> render_click()
 
-    refute has_element?(live, "select##{hook_id} option[value='']")
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
-    assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
+    refute has_element?(live, "select##{hook_id} option[value='2']")
     assert has_element?(live, "#selected-options", "1")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-option-2") |> render_click()
 
-    assert has_element?(live, "select##{hook_id} option[value='1']:not([selected])")
+    refute has_element?(live, "select##{hook_id} option[value='1']")
     assert has_element?(live, "select##{hook_id} option[value='2'][selected]")
     assert has_element?(live, "#selected-options", "2")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-pop-cross-2") |> render_click()
 
-    assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
-    assert has_element?(live, "select##{hook_id} option[value=''][selected]")
+    refute has_element?(live, "select##{hook_id} option")
     assert has_element?(live, "#selected-options", "nil")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
@@ -174,13 +173,13 @@ defmodule SearchableSelect.SearchableSelectTest do
     live: live
   } do
     hook_id = "multi_form-form-hook"
-    assert has_element?(live, "select##{hook_id}[name='test[multi_select][]'] option[value='']")
+    assert has_element?(live, "select##{hook_id}[name='test[multi_select][]']")
+    refute has_element?(live, "select##{hook_id} option")
 
     live |> element("#multi_form-option-1") |> render_click()
 
-    refute has_element?(live, "select##{hook_id} option[value='']")
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
-    assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
+    refute has_element?(live, "select##{hook_id} option[value='2']")
     assert has_element?(live, "#selected-options", "[1]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
@@ -193,10 +192,26 @@ defmodule SearchableSelect.SearchableSelectTest do
 
     live |> element("#multi_form-pop-cross-2") |> render_click()
 
-    assert has_element?(live, "select##{hook_id} option[value='2']:not([selected])")
+    refute has_element?(live, "select##{hook_id} option[value='2']")
     assert has_element?(live, "select##{hook_id} option[value='1'][selected]")
     assert has_element?(live, "#selected-options", "[1]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
+  end
+
+  test "field value initialises selection, preselected_id as fallback", %{live: live} do
+    single_hook_id = "prefilled_single_form-form-hook"
+    assert has_element?(live, "select##{single_hook_id} option[value='2'][selected]")
+    refute has_element?(live, "select##{single_hook_id} option[value='1']")
+    assert has_element?(live, "#prefilled_single_form-root", "Bar")
+
+    multi_hook_id = "prefilled_multi_form-form-hook"
+    assert has_element?(live, "select##{multi_hook_id} option[value='1'][selected]")
+    assert has_element?(live, "select##{multi_hook_id} option[value='3'][selected]")
+    refute has_element?(live, "select##{multi_hook_id} option[value='2']")
+
+    fallback_hook_id = "prefilled_fallback_form-form-hook"
+    assert has_element?(live, "select##{fallback_hook_id} option[value='4'][selected]")
+    assert has_element?(live, "#prefilled_fallback_form-root", "Lmao")
   end
 
   test "pre-selection made, form mode, multiple=false", %{live: live} do

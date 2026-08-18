@@ -136,6 +136,28 @@ defmodule SearchableSelect.TestView do
         preselected_ids={[1, 2]}
       />
     </.form>
+    <.form for={%{"single_select" => 2, "multi_select" => ["1", "3"]}} :let={pf} as={:prefilled}>
+      <.live_component
+        field={pf[:single_select]}
+        id="prefilled_single_form"
+        module={SearchableSelect}
+        options={@options}
+      />
+      <.live_component
+        field={pf[:multi_select]}
+        id="prefilled_multi_form"
+        module={SearchableSelect}
+        multiple
+        options={@options}
+      />
+      <.live_component
+        field={pf[:no_value_select]}
+        id="prefilled_fallback_form"
+        module={SearchableSelect}
+        options={@options}
+        preselected_id={4}
+      />
+    </.form>
     <.live_component
       id="single_invalid_preselect"
       module={SearchableSelect}

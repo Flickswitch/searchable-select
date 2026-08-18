@@ -43,9 +43,6 @@
         aria-hidden="true"
         class="pointer-events-none absolute h-px w-px opacity-0"
       >
-        <option :if={@selected == []} value="" selected></option>
-        <option :for={{_, option} <- :gb_trees.to_list(@options)} value={@value_callback.(option)}>
-        </option>
         <option :for={{_, selected_val} <- @selected} value={@value_callback.(selected_val)} selected>
         </option>
       </select>
