@@ -15,18 +15,46 @@ defmodule SearchableSelect do
         on_select={@on_customer_select}
       />
 
-  Assign the callback once in `mount/3` rather than building it inline in
-  `render/1`, so change tracking can tell that it has not changed:
+  The callback is a plain arity-1 function, so it is invoked wherever the
+  component is rendered - but routing its argument somewhere the parent can
+  handle is up to you, and the adapter you need depends on what the parent is.
 
+  From a LiveView, capture the view's pid and `send/2` to it, handling the
+  message in `handle_info/2`:
+
+      # in mount/3
       view = self()
-      assign(socket, :on_customer_select, &send(view, {:select, :customer, &1}))
+      assign(socket, :on_customer_select, &send(view, {:customer_selected, &1}))
+
+      def handle_info({:customer_selected, customers}, socket) do
+        {:noreply, assign(socket, :customers, customers)}
+      end
+
+  From another LiveComponent, `send/2` would reach the root LiveView rather than
+  your component - the limitation that parent messaging never got around. Route
+  with `send_update/2` and handle it in your own `update/2` instead:
+
+      # in mount/1
+      myself = socket.assigns.myself
+      assign(socket, :on_customer_select, &send_update(myself, customers: &1))
+
+      def update(%{customers: customers}, socket) do
+        {:ok, assign(socket, :customers, customers)}
+      end
+
+      def update(assigns, socket), do: {:ok, assign(socket, assigns)}
+
+  Either way, assign the callback in the parent's mount rather than building it
+  inline in `render/1`, so change tracking can tell that it has not changed.
 
   For multiple selects, the callback receives a list of selected structs/maps.
   For single selects, it receives a struct/map, or `nil` once the selection is
   cleared.
 
-  Alternatively you can use it as part of a normal Phoenix HTML form by passing
-  a `field`, and an optional callback for getting the value of each struct.
+  You can also use it as part of a normal Phoenix HTML form by passing a
+  `field`, and an optional callback for getting the value of each struct.
+  `field` and `on_select` are independent rather than alternatives - pass both
+  if you want the form params and the callback.
 
   The following attributes are available:
 
@@ -42,7 +70,9 @@ defmodule SearchableSelect do
 
   - field
     `Phoenix.HTML.FormField` (i.e. `@form[:your_field]`), optional. If set, the
-    select returns values via hidden inputs instead of via `on_select`.
+    select additionally returns values through hidden inputs, so selections
+    arrive in your form's params. Does not disable `on_select`; pass both to
+    get the params and the callback.
 
   - id
     Component id - required
@@ -80,7 +110,8 @@ defmodule SearchableSelect do
 
   - on_select
     Arity-1 function called with the current selection whenever it changes.
-    Optional, defaults to `nil` (no notification).
+    Called whether or not `field` is set. Optional, defaults to `nil` (no
+    notification).
 
   - on_search
     Arity-1 function called with the search string whenever it changes. A

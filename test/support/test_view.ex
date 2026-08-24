@@ -145,7 +145,9 @@ defmodule SearchableSelect.TestView do
       options={@options}
       on_select={@on_select}
       preselected_ids={[98, 99]}
-    /> last_search_message_params:
+    />
+    <.live_component module={SearchableSelect.TestComponent} id="nested" options={@options} />
+    last_search_message_params:
     <p id="last_search_message_params_p">
       {inspect(@last_search_message_params)}
     </p>

@@ -264,6 +264,46 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#multi_invalid_preselect-option-4")
   end
 
+  test "on_select routed with send_update reaches the containing LiveComponent", %{live: live} do
+    assert live |> element("#nested-selected-options") |> render() ==
+             "<span id=\"nested-selected-options\">[]</span>"
+
+    live |> element("#nested_multi-option-1") |> render_click()
+    live |> element("#nested_multi-option-2") |> render_click()
+
+    # the containing component's own update/2 saw the selection - the root
+    # LiveView is not involved at all
+    assert live |> element("#nested-selected-options") |> render() ==
+             "<span id=\"nested-selected-options\">[1, 2]</span>"
+
+    assert live |> element("#selected-options") |> render() ==
+             "<span id=\"selected-options\">[]</span>"
+
+    live |> element("#nested_multi-pop-cross-1") |> render_click()
+
+    assert live |> element("#nested-selected-options") |> render() ==
+             "<span id=\"nested-selected-options\">[2]</span>"
+  end
+
+  test "on_search appends a newline when the change came from Enter", %{live: live} do
+    live
+    |> element("#multi_custom_no_matching_options_text-search")
+    |> render_keyup(%{"value" => "ayy", "key" => "Enter"})
+
+    assert "<p id=\"last_search_message_params_p\">\n  {&quot;selected_options&quot;, &quot;ayy\\n&quot;}\n</p>" =
+             live |> element("#last_search_message_params_p") |> render()
+
+    # the search itself is unaffected by the trailing newline
+    assert has_element?(live, "#multi_custom_no_matching_options_text-option-1")
+
+    live
+    |> element("#multi_custom_no_matching_options_text-search")
+    |> render_keyup(%{"value" => "ayy", "key" => "y"})
+
+    assert "<p id=\"last_search_message_params_p\">\n  {&quot;selected_options&quot;, &quot;ayy&quot;}\n</p>" =
+             live |> element("#last_search_message_params_p") |> render()
+  end
+
   defp load_test_view(_) do
     {:ok, live, _html} = live_isolated(conn(:get, "/"), SearchableSelect.TestView)
     %{live: live}

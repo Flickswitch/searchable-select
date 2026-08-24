@@ -42,21 +42,47 @@ an `on_select` callback to be told about selections:
 />
 ```
 
-Assign the callback in `mount/3` rather than building it inline in `render/1`, so
-LiveView's change tracking can see that it hasn't changed:
+The callback receives a list of the selected structs when `multiple` is set, and
+a single struct (or `nil`) otherwise. It is a plain arity-1 function, so it is
+invoked wherever the component is rendered - but routing its argument back to the
+parent is your job, and the adapter depends on what the parent is.
+
+From a **LiveView**, capture the view's pid and `send/2` to it, then handle the
+message in `handle_info/2`:
 
 ```elixir
 def mount(_params, _session, socket) do
   view = self()
   {:ok, assign(socket, :on_customer_select, &send(view, {:customer_selected, &1}))}
 end
+
+def handle_info({:customer_selected, customers}, socket) do
+  {:noreply, assign(socket, :customers, customers)}
+end
 ```
 
-The callback receives a list of the selected structs when `multiple` is set, and
-a single struct (or `nil`) otherwise. Because it is a plain function, this works
-the same whether the parent is a LiveView or another LiveComponent.
+From **another LiveComponent**, `send/2` would reach the root LiveView instead of
+your component - the exact limitation that the old parent messaging could not get
+around. Route with `send_update/2` and handle it in your own `update/2`:
 
-If you want to make the searchable select more integrated with your form and don't care about getting the whole struct (e.g. you have options like `[%{id: 1, name: "ABC", value: 25}]` and only want `25`) you can pass a form field instead:
+```elixir
+def mount(socket) do
+  myself = socket.assigns.myself
+  {:ok, assign(socket, :on_customer_select, &send_update(myself, customers: &1))}
+end
+
+def update(%{customers: customers}, socket) do
+  {:ok, assign(socket, :customers, customers)}
+end
+
+def update(assigns, socket), do: {:ok, assign(socket, assigns)}
+```
+
+Either way, assign the callback in the parent's mount rather than building it
+inline in `render/1`, so LiveView's change tracking can see that it hasn't
+changed.
+
+If you want to make the searchable select more integrated with your form and don't care about getting the whole struct (e.g. you have options like `[%{id: 1, name: "ABC", value: 25}]` and only want `25`) you can also pass a form field:
 ```
     <SearchableSelect.searchable_select
       id="your-select"
@@ -64,14 +90,14 @@ If you want to make the searchable select more integrated with your form and don
       options={@options}
     />
 ```
-then whenever you select stuff it'll show up as part of params in your form's `handle_event` instead of via `on_select`
+then whenever you select stuff it'll show up as part of params in your form's `handle_event`. This is in addition to `on_select`, not instead of it - the two are independent, so pass both if you want the form params and the callback.
 
 If you want to change how the labels are generated, you can add a callback, for example if you had a list of options like this:`[%{id: 1, network_name: "ABC", billing_type: "Prepaid"}, %{id: 2, network_name: "ABC", billing_type: "Contract"}]` you could add a callback like this:
 ```
     label_callback={fn item -> "#{item.network_name} - #{item.billing_type}" end}
 ```
 
-A similar callback is available for generating values if you opt to go the form route (instead of `on_select`). You set it with `value_callback`:
+A similar callback is available for generating values if you opt to go the form route (i.e. whenever `field` is set). You set it with `value_callback`:
 ```
     value_callback={fn item -> item.billing_type end}
 ```

@@ -40,6 +40,12 @@ jobs:
 
       - run: mix deps.get
 
+      # Advisory data is external and moves without us, so this reports rather
+      # than gates - a newly published advisory should not fail unrelated PRs.
+      - name: Check for dependency advisories
+        run: mix hex.audit
+        continue-on-error: true
+
       - run: mix format --check-formatted
 
       - run: mix compile --warnings-as-errors
