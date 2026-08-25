@@ -18,7 +18,7 @@ defmodule SearchableSelect.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/Flickswitch/searchable-select"},
-      files: ~w(lib mix.exs README.md LICENSE)
+      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 

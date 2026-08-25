@@ -19,6 +19,24 @@ defmodule SearchableSelect.SearchableSelectTest do
     Enum.each(1..4, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
   end
 
+  test "removed limit survives a parent re-render", %{live: live} do
+    live |> element("#single_limited-remove-limit-option") |> render_click()
+    assert has_element?(live, "#single_limited-option-4")
+
+    send(
+      live.pid,
+      {:change_options,
+       [
+         %{id: 1, name: "Ayy"},
+         %{id: 2, name: "Bar"},
+         %{id: 3, name: "Foo"},
+         %{id: 4, name: "Lmao"}
+       ]}
+    )
+
+    assert has_element?(live, "#single_limited-option-4")
+  end
+
   test "renders accessible dropdown controls", %{live: live} do
     assert has_element?(live, "#single-search[aria-haspopup=listbox]")
     assert has_element?(live, "#single-search[aria-controls=single-dropdown]")

@@ -199,6 +199,7 @@ defmodule SearchableSelect do
     |> assign(assigns)
     |> assign(:search, "")
     |> assign(:selected, [])
+    |> assign(:limit_removed?, false)
     |> pre_select(assigns)
     |> prep_options(assigns)
     |> sort_and_filter()
@@ -282,7 +283,7 @@ defmodule SearchableSelect do
 
   def handle_event("remove_limit", _, socket) do
     socket
-    |> assign(limit: 0, search: "")
+    |> assign(limit_removed?: true, search: "")
     |> sort_and_filter()
     |> then(&{:noreply, &1})
   end
@@ -346,7 +347,7 @@ defmodule SearchableSelect do
     {limit_hit?, visible_options} =
       assigns.options
       |> filter(assigns.search)
-      |> limit_options(assigns.limit)
+      |> limit_options(if assigns.limit_removed?, do: 0, else: assigns.limit)
 
     visible_options =
       sort_options(visible_options, assigns.sort_mapping_callback, assigns.sort_callback)
