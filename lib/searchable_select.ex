@@ -76,18 +76,12 @@ defmodule SearchableSelect do
 
   - grouper
     Optional. Groups the options under headings in the dropdown. A map of
-    `%{groups: [%{name: "Heading"}, ...], group_by_fn: fn {key, option}, group -> boolean end}`.
+    `%{groups: [%{name: "Heading"}, ...], group_by_fn: fn option, group -> boolean end}`.
     Groups render in the order given, and a group with no matching options is
-    skipped. Note that `group_by_fn` receives the internal `{key, option}`
-    tuple rather than the option on its own.
+    skipped.
 
   - id
     Component id - required
-
-  - id_key
-    Map/struct key to use when generating DOM IDs for options - optional, defaults to `:id`.
-    If your maps/structs don't have this field then no DOM IDs will be set. Not
-    needed for the select to function, just included as a testing convenience.
 
   - label_callback
     Function used to populate label when displaying items. Defaults to
@@ -128,27 +122,22 @@ defmodule SearchableSelect do
   - placeholder
     Placeholder for the search input, defaults to "Search"
 
-  - preselected_id
-    Used to populate the component with an already-selected option upon first
-    render. Only for `multiple: false`. Specify the `id` of the desired option,
-    defaults to `nil` (no pre-selection occurs).
+  - preselected
+    Populates the component with already-selected options upon first render.
+    An `id` for `multiple: false`, a list of `id`s for `multiple: true`.
+    Defaults to `nil` (no pre-selection occurs). Ids are compared as strings,
+    so a value taken straight out of params matches an integer id.
 
-  - preselected_ids
-    Used to populate the component with already-selected options upon first
-    render. Only for `multiple: true`. Specify a list of `id`s of the desired
-    options, defaults to [] (no pre-selection occurs).
+  - sort_by
+    Optional. Sorts the options shown in the dropdown. Either a function
+    mapping an option to the value to sort by, or a `{function, sorter}` tuple
+    where `sorter` is anything `Enum.sort_by/3` accepts, e.g.
+    `sort_by={{& &1.name, :desc}}`. Defaults to `nil` (options are sorted by
+    their label).
 
   - value_callback
     Function used to populate the hidden input when field is set. Defaults to
     `fn item -> item.id end`
-
-  - sort_callback
-    Optional. Either `:asc` or `:desc` and optional module to use for comparison
-    (refer to `Enum.sort_by/3`)
-
-  - sort_mapping_callback
-    Optional. Function for mapping of value to sort by (refer to
-    `Enum.sort_by/3`)
   """
   use Phoenix.LiveComponent
   alias Phoenix.HTML.Form
@@ -161,7 +150,6 @@ defmodule SearchableSelect do
   attr(:dropdown, :boolean, default: false)
   attr(:field, Phoenix.HTML.FormField, default: nil)
   attr(:grouper, :any, default: nil)
-  attr(:id_key, :atom, default: :id)
   attr(:label_callback, :any, default: &SearchableSelect.default_label/1)
   attr(:limit, :integer, default: 100)
 
@@ -174,10 +162,8 @@ defmodule SearchableSelect do
   attr(:on_search, :any, default: nil)
   attr(:on_select, :any, default: nil)
   attr(:placeholder, :string, default: "Search")
-  attr(:preselected_id, :any, default: nil)
-  attr(:preselected_ids, :list, default: [])
-  attr(:sort_callback, :any, default: nil)
-  attr(:sort_mapping_callback, :any, default: nil)
+  attr(:preselected, :any, default: nil)
+  attr(:sort_by, :any, default: nil)
   attr(:value_callback, :any, default: &SearchableSelect.default_value/1)
 
   def searchable_select(assigns) do
@@ -279,7 +265,7 @@ defmodule SearchableSelect do
     <button
       type="button"
       class="my-auto h-4 w-4 fill-current"
-      id={get_pop_cross_id(@component_id, elem(@selected, 1), @id_key)}
+      id={get_pop_cross_id(@component_id, elem(@selected, 1))}
       aria-label="Remove selection"
       phx-click="pop"
       phx-value-key={elem(@selected, 0)}
@@ -292,20 +278,8 @@ defmodule SearchableSelect do
     """
   end
 
-  # get id_key, component id, selected
-  def get_option_id(component_id, selected, id_key) do
-    case Map.get(selected, id_key) do
-      nil -> nil
-      id -> "#{component_id}-option-#{id}"
-    end
-  end
-
-  def get_pop_cross_id(component_id, selected, id_key) do
-    case Map.get(selected, id_key) do
-      nil -> nil
-      id -> "#{component_id}-pop-cross-#{id}"
-    end
-  end
+  def get_option_id(component_id, option), do: "#{component_id}-option-#{option.id}"
+  def get_pop_cross_id(component_id, option), do: "#{component_id}-pop-cross-#{option.id}"
 
   def hide_dropdown(id, js \\ %JS{}) do
     JS.hide(js, to: "##{id}-dropdown")
@@ -339,10 +313,10 @@ defmodule SearchableSelect do
       |> filter(assigns.search)
       |> limit_options(if assigns.limit_removed?, do: 0, else: assigns.limit)
 
-    visible_options =
-      sort_options(visible_options, assigns.sort_mapping_callback, assigns.sort_callback)
-
-    assign(socket, limit_hit?: limit_hit?, visible_options: visible_options)
+    assign(socket,
+      limit_hit?: limit_hit?,
+      visible_options: sort_options(visible_options, assigns.sort_by)
+    )
   end
 
   defp unselected(%{keyed_options: keyed_options, selected: selected}) do
@@ -350,11 +324,13 @@ defmodule SearchableSelect do
     Enum.reject(keyed_options, fn {key, _val} -> MapSet.member?(selected_keys, key) end)
   end
 
-  defp sort_options(visible_options, nil, nil), do: visible_options
+  defp sort_options(visible_options, nil), do: visible_options
 
-  defp sort_options(visible_options, sort_mapping_callback, sort_callback) do
-    Enum.sort_by(visible_options, fn {_, x} -> sort_mapping_callback.(x) end, sort_callback)
+  defp sort_options(visible_options, {mapper, sorter}) do
+    Enum.sort_by(visible_options, fn {_key, option} -> mapper.(option) end, sorter)
   end
+
+  defp sort_options(visible_options, mapper), do: sort_options(visible_options, {mapper, :asc})
 
   defp limit_options(options, limit) when is_integer(limit) and limit > 0 do
     {count, limited_options} =
@@ -421,45 +397,19 @@ defmodule SearchableSelect do
 
   defp get_hook_id(id), do: id <> "-form-hook"
 
-  defp pre_select(socket, %{preselected_ids: [], multiple: true}) do
-    assign(socket, :selected, [])
-  end
+  # ids are compared as strings so that a preselection taken straight from
+  # params matches an integer id, without assuming ids are integers at all
+  defp pre_select(socket, %{options: options, preselected: preselected, multiple: multiple}) do
+    ids = preselected |> List.wrap() |> MapSet.new(&to_string/1)
 
-  defp pre_select(socket, %{preselected_id: nil, preselected_ids: []}), do: socket
-
-  defp pre_select(socket, %{options: options, preselected_id: preselected_id, multiple: false}) do
-    preselected_id =
-      if is_binary(preselected_id) do
-        String.to_integer(preselected_id)
-      else
-        preselected_id
-      end
-
-    selected_option = Enum.find(options, &(Map.get(&1, :id) == preselected_id))
-
-    if selected_option do
-      selected_option_key = unique_normalised_key(selected_option, socket.assigns.label_callback)
-      assign(socket, :selected, [{selected_option_key, selected_option}])
-    else
-      assign(socket, :selected, [])
-    end
-  end
-
-  defp pre_select(socket, %{options: options, preselected_ids: preselected_ids, multiple: true}) do
     selected =
-      Enum.reduce(options, [], fn option, acc ->
-        if option.id in preselected_ids do
-          option_key = unique_normalised_key(option, socket.assigns.label_callback)
-          acc ++ [{option_key, option}]
-        else
-          acc
-        end
-      end)
+      options
+      |> Enum.filter(&MapSet.member?(ids, to_string(&1.id)))
+      |> then(&if multiple, do: &1, else: Enum.take(&1, 1))
+      |> Enum.map(&{unique_normalised_key(&1, socket.assigns.label_callback), &1})
 
     assign(socket, :selected, selected)
   end
-
-  defp pre_select(socket, _assigns), do: socket
 
   defp normalise_string(string) do
     string

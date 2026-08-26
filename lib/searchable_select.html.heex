@@ -13,7 +13,7 @@
           <div class="text-xs font-normal max-w-full flex-initial">
             {@label_callback.(selected_val)}
           </div>
-          <.pop_cross component_id={@id} id_key={@id_key} selected={selected} target={@myself} />
+          <.pop_cross component_id={@id} selected={selected} target={@myself} />
         </div>
       <% else %>
         <%= if @selected != [] do %>
@@ -51,12 +51,7 @@
     <% end %>
 
     <%= if !@multiple and @selected != [] do %>
-      <.pop_cross
-        component_id={@id}
-        id_key={@id_key}
-        selected={List.first(@selected)}
-        target={@myself}
-      />
+      <.pop_cross component_id={@id} selected={List.first(@selected)} target={@myself} />
     <% end %>
     <%!-- dropdown caret --%>
     <div class="text-base-content/30 w-8 py-1 pl-2 pr-1 flex items-center">
@@ -88,7 +83,9 @@
           <%= if !is_nil(@grouper) do %>
             <%= for group <- @grouper.groups do %>
               <% matching_options =
-                Enum.filter(@visible_options, &@grouper.group_by_fn.(&1, group)) %>
+                Enum.filter(@visible_options, fn {_key, option} ->
+                  @grouper.group_by_fn.(option, group)
+                end) %>
               <%= if Enum.any?(matching_options) do %>
                 <div class="text-xs font-semibold uppercase tracking-wide text-base-content/40 px-2 pt-2 pb-1">
                   {group.name}
@@ -97,7 +94,7 @@
                   <button
                     type="button"
                     class="overflow-none shrink-0 block w-full text-left cursor-pointer text-sm text-base-content hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
-                    id={get_option_id(@id, option_val, @id_key)}
+                    id={get_option_id(@id, option_val)}
                     phx-click={selection_action(option_key, @myself, @id, @multiple)}
                   >
                     {@label_callback.(option_val)}
@@ -110,7 +107,7 @@
               <button
                 type="button"
                 class="overflow-none shrink-0 w-full text-left cursor-pointer flex items-center justify-between hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
-                id={get_option_id(@id, option_val, @id_key)}
+                id={get_option_id(@id, option_val)}
                 phx-click={selection_action(option_key, @myself, @id, @multiple)}
               >
                 {@label_callback.(option_val)}
