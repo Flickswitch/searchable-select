@@ -55,10 +55,21 @@ changes to the component's API.**
   assign(socket, :on_customer_select, &send(view, {:select, "customer", &1}))
   ```
 
+  That adapter is for a LiveView parent. From inside another LiveComponent,
+  `send/2` still reaches the root LiveView rather than your component, so route
+  with `send_update/2` and handle it in your own `update/2`:
+
+  ```elixir
+  # in mount/1
+  myself = socket.assigns.myself
+  assign(socket, :on_customer_select, &send_update(myself, customers: &1))
+  ```
+
   The callback receives the same value the message used to carry: a list of
   structs for `multiple` selects, a single struct or `nil` otherwise. In form
   mode the callback is no longer gated behind a flag - pass `on_select` to
-  receive changes, omit it to not. Form mode also no longer wraps the value of a
+  receive changes, omit it to not. `field` and `on_select` are independent, so
+  both can be used together. Form mode also no longer wraps the value of a
   single select in a list; it now matches non-form mode.
 
 - **The `form` attribute is removed; `field` now takes a
@@ -77,6 +88,14 @@ changes to the component's API.**
 - Dropdown caret and remove-selection icons are sized again; Tailwind Preflight
   does not constrain `svg` the way it does `img`, so the intrinsic 20x20
   viewBox was rendering at the wrong size.
+
+### Development
+
+- `mix.lock` moves to `phoenix_live_view` 1.2.10, past the 1.2.7 pinned by
+  EEF-CVE-2026-64941 (`validate_local_url!/2` open redirect, LOW). This library
+  does not call the affected function, and the advisory does not narrow the
+  `~> 1.1` requirement - consumers resolve their own version - but the suite
+  should not be verified against a package with an open advisory.
 
 ### Removed
 

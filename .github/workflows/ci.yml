@@ -19,7 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # .tool-versions is the single source of truth for the toolchain
+      # .tool-versions is the single source of truth for the toolchain.
+      # setup-beam rejects version-file with anything but version-type: strict,
+      # so the versions there are exact and an OTP/Elixir patch bump is a commit.
       - uses: erlef/setup-beam@v1
         with:
           version-file: .tool-versions
@@ -39,6 +41,12 @@ jobs:
           mix deps.unlock phoenix_live_view
 
       - run: mix deps.get
+
+      # Advisory data is external and moves without us, so this reports rather
+      # than gates - a newly published advisory should not fail unrelated PRs.
+      - name: Check for dependency advisories
+        run: mix hex.audit
+        continue-on-error: true
 
       - run: mix format --check-formatted
 
