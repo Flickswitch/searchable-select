@@ -1,6 +1,6 @@
 defmodule SearchableSelect.SearchableSelectTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Test
 
   import Phoenix.LiveViewTest
   @endpoint SearchableSelect.Endpoint
@@ -12,10 +12,57 @@ defmodule SearchableSelect.SearchableSelectTest do
     Enum.each(1..4, fn i -> assert has_element?(live, "#single-option-#{i}") end)
     Enum.each(1..2, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
     Enum.each(3..4, fn i -> refute has_element?(live, "#single_limited-option-#{i}") end)
+    Enum.each(1..4, fn i -> assert has_element?(live, "#single_unlimited-option-#{i}") end)
     Enum.each(1..4, fn i -> assert has_element?(live, "#dropdown-option-#{i}") end)
 
     live |> element("#single_limited-remove-limit-option") |> render_click()
     Enum.each(1..4, fn i -> assert has_element?(live, "#single_limited-option-#{i}") end)
+  end
+
+  test "removed limit survives a parent re-render", %{live: live} do
+    live |> element("#single_limited-remove-limit-option") |> render_click()
+    assert has_element?(live, "#single_limited-option-4")
+
+    send(
+      live.pid,
+      {:change_options,
+       [
+         %{id: 1, name: "Ayy"},
+         %{id: 2, name: "Bar"},
+         %{id: 3, name: "Foo"},
+         %{id: 4, name: "Lmao"}
+       ]}
+    )
+
+    assert has_element?(live, "#single_limited-option-4")
+  end
+
+  test "renders accessible dropdown controls", %{live: live} do
+    assert has_element?(live, "#single-search[aria-haspopup=listbox]")
+    assert has_element?(live, "#single-search[aria-controls=single-dropdown]")
+    assert has_element?(live, "#single-option-1[type=button]")
+    assert has_element?(live, "#single-caret[type=button]")
+    assert has_element?(live, "#single-caret svg.h-full.w-full")
+    assert has_element?(live, "#single_preselected-pop-cross-4 svg.h-full.w-full")
+  end
+
+  test "ignores stale events for select and pop branches", %{live: live} do
+    live |> element("#single-option-1") |> render_click(%{"key" => "missing"})
+    live |> element("#dropdown-option-1") |> render_click(%{"key" => "missing"})
+
+    live |> element("#single-option-1") |> render_click()
+    live |> element("#single-pop-cross-1") |> render_click(%{"key" => "missing"})
+
+    assert has_element?(live, "#single-pop-cross-1")
+  end
+
+  test "ignores stale select events without changing the socket" do
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{options: :gb_trees.empty(), selected: [], multiple: false}
+    }
+
+    assert {:noreply, ^socket} =
+             SearchableSelect.handle_event("select", %{"key" => "missing"}, socket)
   end
 
   test "search filters items in dropdown", %{live: live} do
@@ -141,6 +188,19 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#single-option-2")
   end
 
+  test "view can change available options dynamically without messing up selection, multiple=true",
+       %{live: live} do
+    live |> element("#multi-option-1") |> render_click()
+    live |> element("#multi-option-2") |> render_click()
+
+    send(live.pid, {:change_options, [%{id: 1, name: "Ayy"}, %{id: 2, name: "Bar"}]})
+
+    assert has_element?(live, "#multi-pop-cross-1")
+    assert has_element?(live, "#multi-pop-cross-2")
+    refute has_element?(live, "#multi-option-1")
+    refute has_element?(live, "#multi-option-2")
+  end
+
   test "form mode pushes event and creates hidden inputs when changing single select", %{
     live: live
   } do
@@ -149,18 +209,18 @@ defmodule SearchableSelect.SearchableSelectTest do
 
     live |> element("#single_form-option-1") |> render_click()
 
-    assert has_element?(live, "#test_single_select[value=1]")
+    assert has_element?(live, "#test_single_select[value=\"1\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-option-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=1]")
-    assert has_element?(live, "#test_single_select[value=2]")
+    refute has_element?(live, "#test_single_select[value=\"1\"]")
+    assert has_element?(live, "#test_single_select[value=\"2\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-pop-cross-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=2]")
+    refute has_element?(live, "#test_single_select[value=\"2\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
@@ -220,6 +280,46 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#multi_invalid_preselect-option-2")
     assert has_element?(live, "#multi_invalid_preselect-option-3")
     assert has_element?(live, "#multi_invalid_preselect-option-4")
+  end
+
+  test "on_select routed with send_update reaches the containing LiveComponent", %{live: live} do
+    assert live |> element("#nested-selected-options") |> render() ==
+             "<span id=\"nested-selected-options\">[]</span>"
+
+    live |> element("#nested_multi-option-1") |> render_click()
+    live |> element("#nested_multi-option-2") |> render_click()
+
+    # the containing component's own update/2 saw the selection - the root
+    # LiveView is not involved at all
+    assert live |> element("#nested-selected-options") |> render() ==
+             "<span id=\"nested-selected-options\">[1, 2]</span>"
+
+    assert live |> element("#selected-options") |> render() ==
+             "<span id=\"selected-options\">[]</span>"
+
+    live |> element("#nested_multi-pop-cross-1") |> render_click()
+
+    assert live |> element("#nested-selected-options") |> render() ==
+             "<span id=\"nested-selected-options\">[2]</span>"
+  end
+
+  test "on_search appends a newline when the change came from Enter", %{live: live} do
+    live
+    |> element("#multi_custom_no_matching_options_text-search")
+    |> render_keyup(%{"value" => "ayy", "key" => "Enter"})
+
+    assert "<p id=\"last_search_message_params_p\">\n  {&quot;selected_options&quot;, &quot;ayy\\n&quot;}\n</p>" =
+             live |> element("#last_search_message_params_p") |> render()
+
+    # the search itself is unaffected by the trailing newline
+    assert has_element?(live, "#multi_custom_no_matching_options_text-option-1")
+
+    live
+    |> element("#multi_custom_no_matching_options_text-search")
+    |> render_keyup(%{"value" => "ayy", "key" => "y"})
+
+    assert "<p id=\"last_search_message_params_p\">\n  {&quot;selected_options&quot;, &quot;ayy&quot;}\n</p>" =
+             live |> element("#last_search_message_params_p") |> render()
   end
 
   defp load_test_view(_) do

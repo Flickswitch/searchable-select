@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both ends of the phoenix_live_view requirement in mix.exs, so the
+        # supported range stays a tested claim rather than an assumption.
+        live_view: ["1.1.0", "1.2.0"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # .tool-versions is the single source of truth for the toolchain.
+      # setup-beam rejects version-file with anything but version-type: strict,
+      # so the versions there are exact and an OTP/Elixir patch bump is a commit.
+      - uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ matrix.live_view }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-${{ matrix.live_view }}-
+
+      - name: Pin phoenix_live_view to ~> ${{ matrix.live_view }}
+        run: |
+          sed -i 's|{:phoenix_live_view, "[^"]*"}|{:phoenix_live_view, "~> ${{ matrix.live_view }}"}|' mix.exs
+          mix deps.unlock phoenix_live_view
+
+      - run: mix deps.get
+
+      # Advisory data is external and moves without us, so this reports rather
+      # than gates - a newly published advisory should not fail unrelated PRs.
+      - name: Check for dependency advisories
+        run: mix hex.audit
+        continue-on-error: true
+
+      - run: mix format --check-formatted
+
+      - run: mix compile --warnings-as-errors
+
+      - run: mix credo --strict
+
+      - run: mix test
+
+  # The elixir requirement in mix.exs is a promise to consumers, so the oldest
+  # version it allows gets compiled and tested too. Formatting and credo are
+  # checked on the development toolchain only - their output moves between
+  # Elixir versions and says nothing about whether the library works here.
+  floor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "26.2"
+          elixir-version: "1.15"
+
+      - run: mix deps.get
+
+      - run: mix compile --warnings-as-errors
+
+      - run: mix test

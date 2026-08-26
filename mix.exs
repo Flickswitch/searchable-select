@@ -4,8 +4,8 @@ defmodule SearchableSelect.MixProject do
   def project do
     [
       app: :searchable_select,
-      version: "0.1.0",
-      elixir: "~> 1.13",
+      version: "0.2.0",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -18,7 +18,7 @@ defmodule SearchableSelect.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/Flickswitch/searchable-select"},
-      files: ~w(lib mix.exs README.md LICENSE)
+      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 
@@ -32,10 +32,10 @@ defmodule SearchableSelect.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "~> 1.6", only: :dev},
-      {:floki, "~> 0.30", only: :test},
+      {:credo, "~> 1.7", only: :dev},
       {:jason, "~> 1.0", only: [:dev, :test]},
-      {:phoenix_live_view, "~> 0.20.0 or ~> 1.0"}
+      {:lazy_html, "~> 0.1", only: :test},
+      {:phoenix_live_view, "~> 1.1"}
     ]
   end
 
