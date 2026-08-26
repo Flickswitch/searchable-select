@@ -19,11 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # .tool-versions is the single source of truth for the toolchain. Loose
-      # resolution so OTP/Elixir patch releases don't need a commit here.
+      # .tool-versions is the single source of truth for the toolchain.
+      # setup-beam rejects version-file with anything but version-type: strict,
+      # so the versions there are exact and an OTP/Elixir patch bump is a commit.
       - uses: erlef/setup-beam@v1
         with:
           version-file: .tool-versions
+          version-type: strict
 
       - uses: actions/cache@v4
         with:
