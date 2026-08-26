@@ -58,11 +58,19 @@ defmodule SearchableSelect.SearchableSelectTest do
 
   test "ignores stale select events without changing the socket" do
     socket = %Phoenix.LiveView.Socket{
-      assigns: %{options: :gb_trees.empty(), selected: [], multiple: false}
+      assigns: %{keyed_options: [], selected: [], multiple: false}
     }
 
     assert {:noreply, ^socket} =
              SearchableSelect.handle_event("select", %{"key" => "missing"}, socket)
+  end
+
+  test "a crafted select event cannot select an option that is already selected", %{live: live} do
+    live |> element("#multi-option-1") |> render_click()
+    live |> element("#multi-option-2") |> render_click(%{"key" => "ayy 1"})
+
+    assert live |> element("#selected-options") |> render() ==
+             "<span id=\"selected-options\">[1]</span>"
   end
 
   test "search filters items in dropdown", %{live: live} do

@@ -214,22 +214,15 @@ defmodule SearchableSelect do
   end
 
   @impl true
-  def handle_event("pop", %{"key" => key}, %{assigns: assigns} = socket) do
-    %{options: options, selected: selected} = assigns
-
-    case List.keyfind(selected, key, 0) do
-      nil ->
-        {:noreply, socket}
-
-      {^key, val} ->
-        options = :gb_trees.insert(key, val, options)
-
-        socket
-        |> assign(:options, options)
-        |> assign(:selected, List.keydelete(selected, key, 0))
-        |> update_parent_view()
-        |> sort_and_filter()
-        |> then(&{:noreply, &1})
+  def handle_event("pop", %{"key" => key}, %{assigns: %{selected: selected}} = socket) do
+    if List.keymember?(selected, key, 0) do
+      socket
+      |> assign(:selected, List.keydelete(selected, key, 0))
+      |> update_parent_view()
+      |> sort_and_filter()
+      |> then(&{:noreply, &1})
+    else
+      {:noreply, socket}
     end
   end
 
@@ -245,14 +238,12 @@ defmodule SearchableSelect do
   end
 
   def handle_event("select", %{"key" => key}, %{assigns: %{dropdown: true} = assigns} = socket) do
-    %{on_select: on_select, options: options} = assigns
-
-    case :gb_trees.lookup(key, options) do
-      :none ->
+    case List.keyfind(assigns.keyed_options, key, 0) do
+      nil ->
         {:noreply, socket}
 
-      {:value, val} ->
-        if on_select, do: on_select.(val)
+      {^key, val} ->
+        if assigns.on_select, do: assigns.on_select.(val)
 
         socket
         |> assign(:search, "")
@@ -261,27 +252,15 @@ defmodule SearchableSelect do
   end
 
   def handle_event("select", %{"key" => key}, %{assigns: assigns} = socket) do
-    %{options: options, selected: selected} = assigns
-
-    case :gb_trees.take_any(key, options) do
-      :error ->
+    case List.keyfind(unselected(assigns), key, 0) do
+      nil ->
         {:noreply, socket}
 
-      {val, options} ->
-        {options, selected} =
-          if !assigns.multiple and length(selected) == 1 do
-            [{old_key, old_val}] = selected
-            {:gb_trees.insert(old_key, old_val, options), []}
-          else
-            {options, selected}
-          end
-
-        selected = selected ++ [{key, val}]
+      option ->
+        selected = if assigns.multiple, do: assigns.selected ++ [option], else: [option]
 
         socket
-        |> assign(:options, options)
-        |> assign(:selected, selected)
-        |> assign(:search, "")
+        |> assign(selected: selected, search: "")
         |> sort_and_filter()
         |> update_parent_view()
         |> then(&{:noreply, &1})
@@ -350,9 +329,13 @@ defmodule SearchableSelect do
     end
   end
 
-  def sort_and_filter(%{assigns: assigns} = socket) do
+  # The dropdown shows everything that is not currently selected. Deriving that
+  # each time is what keeps the option list and the selection from drifting
+  # apart - neither one is edited in place.
+  defp sort_and_filter(%{assigns: assigns} = socket) do
     {limit_hit?, visible_options} =
-      assigns.options
+      assigns
+      |> unselected()
       |> filter(assigns.search)
       |> limit_options(if assigns.limit_removed?, do: 0, else: assigns.limit)
 
@@ -360,6 +343,11 @@ defmodule SearchableSelect do
       sort_options(visible_options, assigns.sort_mapping_callback, assigns.sort_callback)
 
     assign(socket, limit_hit?: limit_hit?, visible_options: visible_options)
+  end
+
+  defp unselected(%{keyed_options: keyed_options, selected: selected}) do
+    selected_keys = MapSet.new(selected, fn {key, _val} -> key end)
+    Enum.reject(keyed_options, fn {key, _val} -> MapSet.member?(selected_keys, key) end)
   end
 
   defp sort_options(visible_options, nil, nil), do: visible_options
@@ -380,45 +368,26 @@ defmodule SearchableSelect do
 
   defp limit_options(options, _), do: {false, options}
 
-  def prep_options(%{assigns: assigns} = socket, %{options: options}) do
-    gb_options =
-      Enum.reduce(options, :gb_trees.empty(), fn option, acc ->
-        :gb_trees.insert(unique_normalised_key(option, assigns.label_callback), option, acc)
-      end)
+  defp prep_options(%{assigns: assigns} = socket, %{options: options}) do
+    keyed_options =
+      options
+      |> Enum.map(&{unique_normalised_key(&1, assigns.label_callback), &1})
+      |> Enum.sort_by(fn {key, _val} -> key end)
 
-    gb_options =
-      Enum.reduce(assigns.selected, gb_options, fn {key, _}, acc ->
-        :gb_trees.delete_any(key, acc)
-      end)
-
-    assign(socket, :options, gb_options)
+    assign(socket, :keyed_options, keyed_options)
   end
 
-  def filter(options, search) do
-    search = normalise_string(search)
+  defp filter(keyed_options, search) do
+    case normalise_string(search) do
+      "" ->
+        keyed_options
 
-    if search == "" do
-      :gb_trees.to_list(options)
-    else
-      options
-      |> :gb_trees.iterator()
-      |> :gb_trees.next()
-      |> filter([], search)
+      search ->
+        Enum.filter(keyed_options, fn {key, _val} ->
+          key |> String.split(" ") |> List.first() |> String.contains?(search)
+        end)
     end
   end
-
-  def filter({key, val, next}, acc, search) do
-    acc =
-      if key |> String.split(" ") |> List.first() |> String.contains?(search) do
-        [{key, val} | acc]
-      else
-        acc
-      end
-
-    filter(:gb_trees.next(next), acc, search)
-  end
-
-  def filter(:none, acc, _search), do: Enum.reverse(acc)
 
   defp update_parent_view(%{assigns: assigns} = socket) do
     %{field: field, id: id, multiple: multiple, on_select: on_select, selected: selected} =
