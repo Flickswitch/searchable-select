@@ -18,14 +18,25 @@ defmodule SearchableSelect.TestView do
 
     socket =
       socket
+      |> assign(:grouper, %{groups: [%{name: "Odd"}, %{name: "Even"}], group_by_fn: &parity?/2})
+      |> assign(:label_callback, &label_with_id/1)
       |> assign(:last_search_message_params, nil)
       |> assign(:on_search, &send(view, {:search, "selected_options", &1}))
       |> assign(:on_select, &send(view, {:select, "selected_options", &1}))
       |> assign(:options, example_options)
       |> assign(:selected_options, [])
+      |> assign(:sort_mapping_callback, &sort_by_name/1)
+      |> assign(:value_callback, &value_as_name/1)
 
     {:ok, socket}
   end
+
+  defp label_with_id(%{id: id, name: name}), do: "#{name} ##{id}"
+  defp sort_by_name(%{name: name}), do: name
+  defp value_as_name(%{name: name}), do: name
+
+  defp parity?({_key, %{id: id}}, %{name: "Odd"}), do: rem(id, 2) == 1
+  defp parity?({_key, %{id: id}}, %{name: "Even"}), do: rem(id, 2) == 0
 
   @impl true
   def handle_info({:change_options, options}, socket) do
@@ -105,6 +116,27 @@ defmodule SearchableSelect.TestView do
       options={@options}
       on_select={@on_select}
     />
+    <SearchableSelect.searchable_select
+      id="custom_label"
+      label_callback={@label_callback}
+      multiple
+      options={@options}
+      on_select={@on_select}
+    />
+    <SearchableSelect.searchable_select
+      id="sorted"
+      options={@options}
+      on_select={@on_select}
+      sort_callback={:desc}
+      sort_mapping_callback={@sort_mapping_callback}
+    />
+    <SearchableSelect.searchable_select
+      grouper={@grouper}
+      id="grouped"
+      multiple
+      options={@options}
+      on_select={@on_select}
+    />
     <span id="selected-options">{get_selected_id_list(@selected_options)}</span>
     <.form :let={f} for={%{}} as={:test}>
       <SearchableSelect.searchable_select
@@ -119,6 +151,13 @@ defmodule SearchableSelect.TestView do
         multiple
         on_select={@on_select}
         options={@options}
+      />
+      <SearchableSelect.searchable_select
+        field={f[:custom_value]}
+        id="custom_value_form"
+        on_select={@on_select}
+        options={@options}
+        value_callback={@value_callback}
       />
       <SearchableSelect.searchable_select
         id="single_form_preselected"

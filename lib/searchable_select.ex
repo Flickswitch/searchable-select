@@ -74,6 +74,13 @@ defmodule SearchableSelect do
     arrive in your form's params. Does not disable `on_select`; pass both to
     get the params and the callback.
 
+  - grouper
+    Optional. Groups the options under headings in the dropdown. A map of
+    `%{groups: [%{name: "Heading"}, ...], group_by_fn: fn {key, option}, group -> boolean end}`.
+    Groups render in the order given, and a group with no matching options is
+    skipped. Note that `group_by_fn` receives the internal `{key, option}`
+    tuple rather than the option on its own.
+
   - id
     Component id - required
 
