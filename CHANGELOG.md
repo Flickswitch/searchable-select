@@ -76,15 +76,40 @@ changes to the component's API.**
   `Phoenix.HTML.FormField`.** Replace `form={f} field={:your_field}` with
   `field={f[:your_field]}`.
 
-- **Preselection is applied on first render only.** `preselected_id` and
-  `preselected_ids` were previously re-evaluated on every parent update, which
-  discarded the user's selection in a `multiple` select whenever the parent
-  re-rendered the component with new assigns.
+- **`preselected_id` and `preselected_ids` are replaced by `preselected`.**
+  `multiple` already says whether one or many are expected, so the pair only
+  created a way to disagree with it. `preselected` takes a single id or a list
+  of them; in a single select, only the first match is used. Ids are compared
+  as strings, so a value taken straight from params matches an integer id.
+
+- **Preselection is applied on first render only.** It was previously
+  re-evaluated on every parent update, which discarded the user's selection in
+  a `multiple` select whenever the parent re-rendered the component with new
+  assigns.
+
+- **`sort_callback` and `sort_mapping_callback` are replaced by `sort_by`.**
+  Pass a mapper function to sort ascending by its result, or `{mapper, sorter}`
+  for any other order - the same shape `Enum.sort_by/3` takes. Replace
+  `sort_mapping_callback={& &1.name} sort_callback={:desc}` with
+  `sort_by={{& &1.name, :desc}}`.
+
+- **`id_key` is removed.** Options were already required to have an `:id` -
+  the search key is built from it regardless of what `id_key` was set to - so
+  the attribute only renamed the key used to build DOM ids.
+
+- **`grouper.group_by_fn` receives the option, not a `{key, option}` tuple.**
+  The tuple was the component's internal representation leaking out. Replace
+  `fn {_key, option}, group -> ... end` with `fn option, group -> ... end`.
 
 ### Fixed
 
 - Crafted `select` and `pop` events with an unknown key no longer crash the
   LiveView process.
+- Preselecting by an id that is not an integer - a UUID, say - no longer
+  crashes. `preselected_id` used to call `String.to_integer/1` on it.
+- Sorting by a mapper without also naming a direction no longer crashes.
+  `sort_mapping_callback` without `sort_callback` reached `Enum.sort_by/3` with
+  a `nil` sorter.
 - Dropdown caret and remove-selection icons are sized again; Tailwind Preflight
   does not constrain `svg` the way it does `img`, so the intrinsic 20x20
   viewBox was rendering at the wrong size.

@@ -18,14 +18,30 @@ defmodule SearchableSelect.TestView do
 
     socket =
       socket
+      |> assign(:grouper, %{groups: [%{name: "Odd"}, %{name: "Even"}], group_by_fn: &parity?/2})
+      |> assign(:label_callback, &label_with_id/1)
       |> assign(:last_search_message_params, nil)
       |> assign(:on_search, &send(view, {:search, "selected_options", &1}))
       |> assign(:on_select, &send(view, {:select, "selected_options", &1}))
       |> assign(:options, example_options)
       |> assign(:selected_options, [])
+      |> assign(:sort_by, {&sort_by_name/1, :desc})
+      |> assign(:sort_by_asc, &sort_by_name/1)
+      |> assign(:string_id_options, [
+        %{id: "a3f9-uuid", name: "Alpha"},
+        %{id: "b7c2", name: "Beta"}
+      ])
+      |> assign(:value_callback, &value_as_name/1)
 
     {:ok, socket}
   end
+
+  defp label_with_id(%{id: id, name: name}), do: "#{name} ##{id}"
+  defp sort_by_name(%{name: name}), do: name
+  defp value_as_name(%{name: name}), do: name
+
+  defp parity?(%{id: id}, %{name: "Odd"}), do: rem(id, 2) == 1
+  defp parity?(%{id: id}, %{name: "Even"}), do: rem(id, 2) == 0
 
   @impl true
   def handle_info({:change_options, options}, socket) do
@@ -90,18 +106,50 @@ defmodule SearchableSelect.TestView do
       id="single_preselected"
       options={@options}
       on_select={@on_select}
-      preselected_id={4}
+      preselected={4}
     />
     <SearchableSelect.searchable_select
       id="multi_preselected"
       multiple
       options={@options}
       on_select={@on_select}
-      preselected_ids={[1, 2]}
+      preselected={[1, 2]}
     />
     <SearchableSelect.searchable_select
       dropdown
       id="dropdown"
+      options={@options}
+      on_select={@on_select}
+    />
+    <SearchableSelect.searchable_select
+      id="custom_label"
+      label_callback={@label_callback}
+      multiple
+      options={@options}
+      on_select={@on_select}
+    />
+    <SearchableSelect.searchable_select
+      id="sorted"
+      options={@options}
+      on_select={@on_select}
+      sort_by={@sort_by}
+    />
+    <SearchableSelect.searchable_select
+      id="sorted_asc"
+      options={@options}
+      on_select={@on_select}
+      sort_by={@sort_by_asc}
+    />
+    <SearchableSelect.searchable_select
+      id="string_id_preselect"
+      options={@string_id_options}
+      on_select={@on_select}
+      preselected="a3f9-uuid"
+    />
+    <SearchableSelect.searchable_select
+      grouper={@grouper}
+      id="grouped"
+      multiple
       options={@options}
       on_select={@on_select}
     />
@@ -121,30 +169,37 @@ defmodule SearchableSelect.TestView do
         options={@options}
       />
       <SearchableSelect.searchable_select
+        field={f[:custom_value]}
+        id="custom_value_form"
+        on_select={@on_select}
+        options={@options}
+        value_callback={@value_callback}
+      />
+      <SearchableSelect.searchable_select
         id="single_form_preselected"
         options={@options}
         on_select={@on_select}
-        preselected_id={3}
+        preselected={3}
       />
       <SearchableSelect.searchable_select
         id="multi_form_preselected"
         multiple
         options={@options}
         on_select={@on_select}
-        preselected_ids={[1, 2]}
+        preselected={[1, 2]}
       />
     </.form>
     <SearchableSelect.searchable_select
       id="single_invalid_preselect"
       options={@options}
       on_select={@on_select}
-      preselected_id={99}
+      preselected={99}
     />
     <SearchableSelect.searchable_select
       id="multi_invalid_preselect"
       options={@options}
       on_select={@on_select}
-      preselected_ids={[98, 99]}
+      preselected={[98, 99]}
     />
     <.live_component module={SearchableSelect.TestComponent} id="nested" options={@options} />
     last_search_message_params:
