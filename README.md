@@ -5,19 +5,29 @@ Searchable multi/single select made for LiveView. Requires Tailwind to be set up
 Requires Elixir 1.15+ and Phoenix LiveView 1.1+. Developed on Elixir 1.20 /
 Erlang OTP 28 (see `.tool-versions`).
 
-# Implementation
+# Installation
 
-## Installation
-Published to the private `flickswitch` Hex repo. Add the repo once per machine
-(reads are open, no auth token needed):
+Published to the private `flickswitch` hex repository, not to hex.pm. Register the
+repository once per machine — it is private, so reads need the auth token, ask SRE
+(this is the read token, not the publish token):
+
 ```sh
 curl -sS https://hex.flickswitch.cloud/repos/flickswitch/public_key -o /tmp/flickswitch_hex_public_key.pem
-mix hex.repo add flickswitch https://hex.flickswitch.cloud/repos/flickswitch --public-key /tmp/flickswitch_hex_public_key.pem
+mix hex.repo add flickswitch https://hex.flickswitch.cloud/repos/flickswitch \
+  --public-key /tmp/flickswitch_hex_public_key.pem --auth-key <read-token>
 ```
-then in mix.exs:
+
+Then add the dependency:
+
 ```elixir
-{:searchable_select, "~> 0.1.0", repo: "flickswitch"}
+def deps do
+  [
+    {:searchable_select, "~> 0.1.0", repo: "flickswitch"}
+  ]
+end
 ```
+
+# Implementation
 
 ## Tailwind config
 in tailwind.config.js add "../deps/searchable_select/lib/*.*ex", to the module.exports
