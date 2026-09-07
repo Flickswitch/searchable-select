@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+
+- **Preselection is reapplied when `preselected` changes.** 0.2.0 applied it on
+  first render only, which stranded a stale selection whenever a parent reset
+  its state and re-rendered the component under the same id - cancelling a
+  modal and reopening it, or reusing one modal for a second record. A parent
+  that changes `preselected` is asking for a different selection, so it is now
+  honoured. A re-render that leaves `preselected` alone still does not touch the
+  selection, so the 0.2.0 fix for multiple selects stands.
+
 ## 0.2.0
 
 Upgrade to Phoenix LiveView 1.2 patterns. **This release contains breaking

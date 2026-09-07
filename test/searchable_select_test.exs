@@ -276,6 +276,30 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert has_element?(live, "#multi_preselected-option-4")
   end
 
+  test "changing preselected reapplies it, leaving it alone keeps the selection", %{live: live} do
+    refute has_element?(live, "#reset_preselected-option-1")
+    refute has_element?(live, "#reset_preselected-option-2")
+
+    send(live.pid, {:change_preselected, []})
+
+    assert has_element?(live, "#reset_preselected-option-1")
+    assert has_element?(live, "#reset_preselected-option-2")
+
+    send(live.pid, {:change_preselected, [3]})
+
+    refute has_element?(live, "#reset_preselected-option-3")
+    assert has_element?(live, "#reset_preselected-pop-cross-3")
+
+    live |> element("#reset_preselected-option-4") |> render_click()
+    assert has_element?(live, "#reset_preselected-pop-cross-4")
+
+    # a re-render that does not touch preselected leaves the user's pick alone
+    send(live.pid, {:change_options, [%{id: 3, name: "Foo"}, %{id: 4, name: "Lmao"}]})
+
+    assert has_element?(live, "#reset_preselected-pop-cross-3")
+    assert has_element?(live, "#reset_preselected-pop-cross-4")
+  end
+
   test "pre-selection made on invalid element", %{live: live} do
     assert has_element?(live, "#single_invalid_preselect-option-1")
     assert has_element?(live, "#single_invalid_preselect-option-2")

@@ -123,10 +123,13 @@ defmodule SearchableSelect do
     Placeholder for the search input, defaults to "Search"
 
   - preselected
-    Populates the component with already-selected options upon first render.
-    An `id` for `multiple: false`, a list of `id`s for `multiple: true`.
-    Defaults to `nil` (no pre-selection occurs). Ids are compared as strings,
-    so a value taken straight out of params matches an integer id.
+    Populates the component with already-selected options. An `id` for
+    `multiple: false`, a list of `id`s for `multiple: true`. Defaults to `nil`
+    (no pre-selection occurs). Ids are compared as strings, so a value taken
+    straight out of params matches an integer id. Applied on first render, and
+    again whenever the value you pass changes - so a parent that resets its own
+    state to `nil` or `[]` clears the selection. A re-render that passes the
+    same value leaves the user's selection alone.
 
   - sort_by
     Optional. Sorts the options shown in the dropdown. Either a function
@@ -176,12 +179,17 @@ defmodule SearchableSelect do
   def default_value(item), do: item.id
 
   @impl true
-  # assigns changed after mount - the selection belongs to the component now, so
-  # it survives, and preselection is not reapplied
+  # assigns changed after mount - the selection belongs to the component, so it
+  # survives a re-render that leaves preselected alone. A parent that changes
+  # preselected is asking for a different selection, so that is reapplied.
   def update(assigns, %{assigns: %{id: _id}} = socket) do
+    reselect? =
+      Map.has_key?(assigns, :preselected) and assigns.preselected != socket.assigns.preselected
+
     socket
     |> assign(assigns)
     |> assign(:search, "")
+    |> then(&if reselect?, do: pre_select(&1, assigns), else: &1)
     |> prep_options(assigns)
     |> sort_and_filter()
     |> then(&{:ok, &1})

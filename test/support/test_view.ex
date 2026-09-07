@@ -24,6 +24,7 @@ defmodule SearchableSelect.TestView do
       |> assign(:on_search, &send(view, {:search, "selected_options", &1}))
       |> assign(:on_select, &send(view, {:select, "selected_options", &1}))
       |> assign(:options, example_options)
+      |> assign(:reset_preselected, [1, 2])
       |> assign(:selected_options, [])
       |> assign(:sort_by, {&sort_by_name/1, :desc})
       |> assign(:sort_by_asc, &sort_by_name/1)
@@ -44,6 +45,12 @@ defmodule SearchableSelect.TestView do
   defp parity?(%{id: id}, %{name: "Even"}), do: rem(id, 2) == 0
 
   @impl true
+  def handle_info({:change_preselected, preselected}, socket) do
+    socket
+    |> assign(:reset_preselected, preselected)
+    |> then(&{:noreply, &1})
+  end
+
   def handle_info({:change_options, options}, socket) do
     socket
     |> assign(:options, options)
@@ -114,6 +121,12 @@ defmodule SearchableSelect.TestView do
       options={@options}
       on_select={@on_select}
       preselected={[1, 2]}
+    />
+    <SearchableSelect.searchable_select
+      id="reset_preselected"
+      multiple
+      options={@options}
+      preselected={@reset_preselected}
     />
     <SearchableSelect.searchable_select
       dropdown
