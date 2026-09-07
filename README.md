@@ -22,7 +22,7 @@ Then add the dependency:
 ```elixir
 def deps do
   [
-    {:searchable_select, "~> 0.1.0", repo: "flickswitch"}
+    {:searchable_select, "~> 0.2.0", repo: "flickswitch"}
   ]
 end
 ```

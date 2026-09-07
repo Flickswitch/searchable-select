@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.0
 
 Upgrade to Phoenix LiveView 1.2 patterns. **This release contains breaking
 changes to the component's API.**
