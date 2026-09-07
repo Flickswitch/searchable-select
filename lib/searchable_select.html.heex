@@ -93,7 +93,7 @@
                 <%= for {option_key, option_val} <- matching_options do %>
                   <button
                     type="button"
-                    class="overflow-none shrink-0 block w-full text-left cursor-pointer text-sm text-base-content hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
+                    class="overflow-none shrink-0 block text-left cursor-pointer text-sm text-base-content hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
                     id={get_option_id(@id, option_val)}
                     phx-click={selection_action(option_key, @myself, @id, @multiple)}
                   >
@@ -106,7 +106,7 @@
             <%= for {option_key, option_val} <- @visible_options do %>
               <button
                 type="button"
-                class="overflow-none shrink-0 w-full text-left cursor-pointer flex items-center justify-between hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
+                class="overflow-none shrink-0 text-left cursor-pointer flex items-center justify-between text-sm hover:bg-primary-400 hover:text-white m-1 p-2 rounded"
                 id={get_option_id(@id, option_val)}
                 phx-click={selection_action(option_key, @myself, @id, @multiple)}
               >
