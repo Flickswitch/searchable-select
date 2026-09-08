@@ -131,6 +131,11 @@ defmodule SearchableSelect do
     state to `nil` or `[]` clears the selection. A re-render that passes the
     same value leaves the user's selection alone.
 
+    Reapplying updates the component and the hidden inputs `field` renders, but
+    it does not call `on_select` and does not push a form change event. You
+    changed `preselected`, so you already know what the selection is - set your
+    own form state to match rather than waiting to be told.
+
   - sort_by
     Optional. Sorts the options shown in the dropdown. Either a function
     mapping an option to the value to sort by, or a `{function, sorter}` tuple

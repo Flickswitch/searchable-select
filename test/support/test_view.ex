@@ -201,6 +201,13 @@ defmodule SearchableSelect.TestView do
         on_select={@on_select}
         preselected={[1, 2]}
       />
+      <SearchableSelect.searchable_select
+        field={f[:reset_form_select]}
+        id="reset_form"
+        multiple
+        options={@options}
+        preselected={@reset_preselected}
+      />
     </.form>
     <SearchableSelect.searchable_select
       id="single_invalid_preselect"

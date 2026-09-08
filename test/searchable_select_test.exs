@@ -290,6 +290,11 @@ defmodule SearchableSelect.SearchableSelectTest do
     refute has_element?(live, "#reset_preselected-option-3")
     assert has_element?(live, "#reset_preselected-pop-cross-3")
 
+    # the hidden inputs a form reads track the same selection
+    assert has_element?(live, "#test_reset_form_select_3[name=\"test[reset_form_select][]\"]")
+    refute has_element?(live, "#test_reset_form_select_1")
+    refute has_element?(live, "#test_reset_form_select_2")
+
     live |> element("#reset_preselected-option-4") |> render_click()
     assert has_element?(live, "#reset_preselected-pop-cross-4")
 
@@ -298,6 +303,17 @@ defmodule SearchableSelect.SearchableSelectTest do
 
     assert has_element?(live, "#reset_preselected-pop-cross-3")
     assert has_element?(live, "#reset_preselected-pop-cross-4")
+    assert has_element?(live, "#test_reset_form_select_3")
+  end
+
+  test "form inputs are dropped when preselected is cleared", %{live: live} do
+    assert has_element?(live, "#test_reset_form_select_1")
+    assert has_element?(live, "#test_reset_form_select_2")
+
+    send(live.pid, {:change_preselected, []})
+
+    refute has_element?(live, "#test_reset_form_select_1")
+    refute has_element?(live, "#test_reset_form_select_2")
   end
 
   test "pre-selection made on invalid element", %{live: live} do

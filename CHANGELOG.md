@@ -12,6 +12,10 @@
   honoured. A re-render that leaves `preselected` alone still does not touch the
   selection, so the 0.2.0 fix for multiple selects stands.
 
+  Reapplying keeps the hidden inputs `field` renders in step with what is shown,
+  but does not call `on_select` and does not push a form change event - the
+  parent set the value, so it is not told about it.
+
 ## 0.2.0
 
 Upgrade to Phoenix LiveView 1.2 patterns. **This release contains breaking
