@@ -71,8 +71,9 @@ defmodule SearchableSelect do
   - field
     `Phoenix.HTML.FormField` (i.e. `@form[:your_field]`), optional. If set, the
     select additionally returns values through hidden inputs, so selections
-    arrive in your form's params. Does not disable `on_select`; pass both to
-    get the params and the callback.
+    arrive in your form's params. The key is always present: `""` when a single
+    select is empty, `[""]` when a `multiple` one is. Does not disable
+    `on_select`; pass both to get the params and the callback.
 
   - grouper
     Optional. Groups the options under headings in the dropdown. A map of
@@ -374,13 +375,12 @@ defmodule SearchableSelect do
   end
 
   defp update_parent_view(%{assigns: assigns} = socket) do
-    %{field: field, id: id, multiple: multiple, on_select: on_select, selected: selected} =
-      assigns
+    %{field: field, multiple: multiple, on_select: on_select, selected: selected} = assigns
 
     if on_select, do: on_select.(selection(selected, multiple))
 
     if field do
-      push_event(socket, "searchable_select", %{id: get_hook_id(id)})
+      push_event(socket, "searchable_select", %{id: field.id})
     else
       socket
     end
@@ -390,20 +390,21 @@ defmodule SearchableSelect do
   defp selection([], false), do: nil
   defp selection([{_key, val}], false), do: val
 
+  defp single_form_value([], _value_callback), do: ""
+  defp single_form_value([{_key, val}], value_callback), do: value_callback.(val)
+
   def hidden_form_input(%{selected_val: selected_val, value_callback: value_callback} = assigns) do
     assigns = assign(assigns, :value, value_callback.(selected_val))
 
     ~H"""
     <input
-      id={if @multiple, do: Form.input_id(@field.form, @field.field, @value), else: @field.id}
-      name={@field.name <> if @multiple, do: "[]", else: ""}
+      id={Form.input_id(@field.form, @field.field, @value)}
+      name={@field.name <> "[]"}
       type="hidden"
       value={@value}
     />
     """
   end
-
-  defp get_hook_id(id), do: id <> "-form-hook"
 
   # ids are compared as strings so that a preselection taken straight from
   # params matches an integer id, without assuming ids are integers at all

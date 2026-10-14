@@ -22,7 +22,7 @@ Then add the dependency:
 ```elixir
 def deps do
   [
-    {:searchable_select, "~> 0.2.0", repo: "flickswitch"}
+    {:searchable_select, "~> 0.3.0", repo: "flickswitch"}
   ]
 end
 ```
@@ -113,6 +113,8 @@ If you want to make the searchable select more integrated with your form and don
     />
 ```
 then whenever you select stuff it'll show up as part of params in your form's `handle_event`. This is in addition to `on_select`, not instead of it - the two are independent, so pass both if you want the form params and the callback.
+
+The key is always present: `""` for a single select with nothing selected, `[""]` for a `multiple` one (`Ecto.Changeset.cast/4` turns that into `[]`). Selecting or clearing dispatches a `change` on the field's input, so `_target` names the field and `Phoenix.Component.used_input?/1` is true from then on.
 
 If you want to change how the labels are generated, you can add a callback, for example if you had a list of options like this:`[%{id: 1, network_name: "ABC", billing_type: "Prepaid"}, %{id: 2, network_name: "ABC", billing_type: "Contract"}]` you could add a callback like this:
 ```
