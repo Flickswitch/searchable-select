@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.3.0
+## 0.2.2
 
-### Breaking
+### Changed
 
 - **Form mode always renders the field's input.** 0.2.x rendered a named input
   only for each selected option, so a select with nothing selected sent no
