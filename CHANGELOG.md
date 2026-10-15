@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.2
+
+### Changed
+
+- **Form mode always renders the field's input.** 0.2.x rendered a named input
+  only for each selected option, so a select with nothing selected sent no
+  key at all and a required field's "can't be blank" error could never pass
+  `Phoenix.Component.used_input?/1`. Now the key is always present:
+
+  - single select: `field=""` when nothing is selected.
+  - `multiple`: `field[]=""` when nothing is selected. `Ecto.Changeset.cast/4`
+    drops `""` from arrays, so changesets see `[]`; code that reads the
+    params directly sees `[""]`.
+
+  Handlers that pattern-matched on the key being absent, or on
+  `"_target" => ["undefined"]`, must match the empty value instead.
+
+- **The change event names the field.** The hook now lives on the field's own
+  input (id `field.id`, name `field.name` or `field.name <> "[]"`), so
+  `_target` is the field's path instead of `["undefined"]`. The input is a
+  hidden *text* input rather than `type="hidden"`: LiveView treats a key
+  backed only by hidden inputs as always used, while a text input stays
+  `_unused_` until the hook dispatches `change`. So `used_input?/1` is false
+  until the user selects or clears something, and true after, which is the
+  same contract as a native `<select>`.
+
 ## 0.2.1
 
 ### Fixed

@@ -212,34 +212,37 @@ defmodule SearchableSelect.SearchableSelectTest do
   test "form mode pushes event and creates hidden inputs when changing single select", %{
     live: live
   } do
-    hook_id = "single_form-form-hook"
-    assert has_element?(live, "##{hook_id}")
+    hook_id = "test_single_select"
+    assert has_element?(live, "##{hook_id}[name=\"test[single_select]\"][value=\"\"]")
 
     live |> element("#single_form-option-1") |> render_click()
 
-    assert has_element?(live, "#test_single_select[value=\"1\"]")
+    assert has_element?(live, "##{hook_id}[value=\"1\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-option-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=\"1\"]")
-    assert has_element?(live, "#test_single_select[value=\"2\"]")
+    refute has_element?(live, "##{hook_id}[value=\"1\"]")
+    assert has_element?(live, "##{hook_id}[value=\"2\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#single_form-pop-cross-2") |> render_click()
 
-    refute has_element?(live, "#test_single_select[value=\"2\"]")
+    assert has_element?(live, "##{hook_id}[value=\"\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
   test "form mode pushes event and creates hidden inputs when changing multi select", %{
     live: live
   } do
-    hook_id = "multi_form-form-hook"
-    assert has_element?(live, "##{hook_id}")
+    hook_id = "test_multi_select"
+    empty_input = "##{hook_id}[name=\"test[multi_select][]\"][value=\"\"]:not([disabled])"
+    assert has_element?(live, empty_input)
 
     live |> element("#multi_form-option-1") |> render_click()
 
+    refute has_element?(live, empty_input)
+    assert has_element?(live, "##{hook_id}[disabled]")
     assert has_element?(live, "#test_multi_select_1[name=\"test[multi_select][]\"]")
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
@@ -250,8 +253,11 @@ defmodule SearchableSelect.SearchableSelectTest do
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
 
     live |> element("#multi_form-pop-cross-2") |> render_click()
+    live |> element("#multi_form-pop-cross-1") |> render_click()
 
-    refute has_element?(live, "#test_multi_select_2[name=\"test[multi_select][]\"]")
+    refute has_element?(live, "#test_multi_select_1")
+    refute has_element?(live, "#test_multi_select_2")
+    assert has_element?(live, empty_input)
     assert_push_event(live, "searchable_select", %{id: ^hook_id})
   end
 
